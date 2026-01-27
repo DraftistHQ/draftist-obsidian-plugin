@@ -11,8 +11,8 @@
     "license": "MIT",
     "dependencies": {
         "lodash": "4.17.21",
-        "react": "19.2.3",
-        "react-dom": "19.2.3",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
         "zod": "3.24.1"
     },
     "devDependencies": {
