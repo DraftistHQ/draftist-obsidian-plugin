@@ -25,6 +25,28 @@ We plan to improve the external contribution workflow in the future. In the mean
 3. Open an issue describing what you'd like to work on
 4. We'll provide guidance on setup and testing
 
+## Commit Messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) with the `obsidian` scope:
+
+```
+<type>(obsidian): <description>
+```
+
+**Types:**
+- `feat` — New feature
+- `fix` — Bug fix
+- `improve` — Enhancement to existing feature
+- `perf` — Performance improvement
+- `docs` — Documentation
+- `chore` — Maintenance
+
+**Examples:**
+```
+feat(obsidian): add bulk image optimization
+fix(obsidian): resolve settings not persisting
+```
+
 ## Questions?
 
 - Join our [Discord](https://discord.gg/nZhbzzbT5A)
