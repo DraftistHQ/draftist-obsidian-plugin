@@ -1,0 +1,105 @@
+.d42-alert-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0;
+}
+
+.d42-alert-message {
+    display: block;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    border-radius: 6px;
+}
+
+.d42-alert-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Alert: Info */
+
+.d42-alert-message-info {
+    background-color: #e0f2fe;
+    border: 1px solid #bae6fd;
+}
+
+.d42-alert-message-info,
+.d42-alert-message-info a {
+    color: #0284c7;
+}
+
+.d42-alert-container-info button.d42-button-primary {
+    border-color: #0284c7;
+    background-color: #0284c7;
+    color: white;
+}
+
+.d42-alert-container-info button.d42-button-primary:hover {
+    border-color: #0369a1;
+    background-color: #0369a1;
+}
+
+.theme-dark .d42-alert-message-info {
+    background-color: rgba(2, 132, 199, 0.1);
+    border-color: rgba(2, 132, 199, 0.2);
+}
+
+/* Alert: Warning */
+
+.d42-alert-message-warning {
+    background-color: #fef9c3;
+    border: 1px solid #fef08a;
+}
+
+.d42-alert-message-warning,
+.d42-alert-message-warning a {
+    color: #ca8a04;
+}
+
+.d42-alert-container-warning button.d42-button-primary {
+    border-color: #ca8a04;
+    background-color: #ca8a04;
+    color: white;
+}
+
+.d42-alert-container-warning button.d42-button-primary:hover {
+    border-color: #a16207;
+    background-color: #a16207;
+}
+
+.theme-dark .d42-alert-message-warning {
+    background-color: rgba(202, 138, 4, 0.1);
+    border-color: rgba(202, 138, 4, 0.2);
+}
+
+/* Alert: Danger */
+
+.d42-alert-message-danger {
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+}
+
+.d42-alert-message-danger,
+.d42-alert-message-danger a {
+    color: #dc2626;
+}
+
+.d42-alert-container-danger button.d42-button-primary {
+    border-color: #dc2626;
+    background-color: #dc2626;
+    color: white;
+}
+
+.d42-alert-container-danger button.d42-button-primary:hover {
+    border-color: #b91c1c;
+    background-color: #b91c1c;
+}
+
+.theme-dark .d42-alert-message-danger {
+    background-color: rgba(220, 38, 38, 0.1);
+    border-color: rgba(220, 38, 38, 0.2);
+}

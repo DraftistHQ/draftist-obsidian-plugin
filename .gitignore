@@ -1,0 +1,24 @@
+# Exclude npm dependencies
+node_modules
+
+# Exclude sourcemaps
+*.map
+
+# Exclude the compiled main.js and styles.css. It should be uploaded to GitHub releases.
+/main.js
+/styles.css
+
+# Exclude user settings
+data.json
+
+# Exclude build assets
+/build/**/*
+
+# Exclude lock files
+watch.lock
+
+# Exclude log files
+*.log
+
+# Exclude macOS system files
+.DS_Store

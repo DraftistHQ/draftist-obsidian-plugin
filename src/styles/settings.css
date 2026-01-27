@@ -1,0 +1,50 @@
+.d42-settings-heading {
+    display: flex !important;
+    font-size: 1.2rem !important;
+}
+
+.d42-settings-disabled-sites-header {
+    padding: 0.75em 0;
+    font-weight: var(--font-semibold);
+
+    &::after {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background-color: var(--icon-color);
+        content: "\200b";
+        mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWNoZXZyb24tdXAtaWNvbiBsdWNpZGUtY2hldnJvbi11cCI+PHBhdGggZD0ibTE4IDE1LTYtNi02IDYiLz48L3N2Zz4=");
+        mask-repeat: no-repeat;
+        opacity: 1;
+        scale: 0.5;
+        transition: transform 100ms ease-out;
+        visibility: visible;
+        transform: translateY(2px) rotate(180deg);
+        transform-origin: 50% 50%;
+    }
+}
+
+.d42-settings-disabled-sites-header-folded.d42-settings-disabled-sites-header::after {
+    transform: translateY(2px) rotate(90deg);
+}
+
+.d42-settings-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+    color: var(--text-faint);
+    font-size: var(--font-smallest);
+
+    & .clickable-icon {
+        color: var(--text-faint);
+
+        & svg {
+            width: 10px;
+            height: 10px;
+        }
+    }
+}

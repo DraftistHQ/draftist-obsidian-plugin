@@ -1,0 +1,11 @@
+{
+    "id": "draft42",
+    "name": "Draft42",
+    "description": "Publish your personal content websites directly from Obsidian",
+    "version": "0.0.0",
+    "minAppVersion": "1.11.4",
+    "author": "Draft42 Team",
+    "authorUrl": "https://draft42.io",
+    "fundingUrl": "https://draft42.io/pricing",
+    "isDesktopOnly": false
+}

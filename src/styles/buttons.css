@@ -1,0 +1,51 @@
+.d42-button {
+    align-self: flex-end;
+    width: auto;
+    border-width: 1px;
+    border-style: solid;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.d42-button-with-spinner {
+    padding-left: 0;
+}
+
+.d42-button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-normal);
+    text-decoration: none;
+    line-height: normal;
+    height: var(--input-height);
+    box-shadow: var(--input-shadow);
+
+    &:hover {
+        color: var(--text-normal);
+        text-decoration: none;
+    }
+}
+
+.d42-button-primary {
+    border-color: var(--interactive-normal) !important;
+    background-color: var(--interactive-accent) !important;
+}
+
+.d42-button-secondary {
+    border-color: var(--interactive-normal) !important;
+    background-color: transparent !important;
+}
+
+.d42-button-secondary:focus {
+    border-color: var(--interactive-normal) !important;
+    background-color: var(--interactive-normal) !important;
+}
+
+.d42-button-danger {
+    border-color: var(--interactive-normal) !important;
+    background-color: var(--background-modifier-error) !important;
+}

@@ -1,0 +1,29 @@
+{
+    "name": "draft42",
+    "version": "0.0.0",
+    "description": "Draft42 integration",
+    "main": "main.js",
+    "scripts": {
+        "dev": "node esbuild.config.mjs",
+        "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+    },
+    "author": "Draft42",
+    "license": "MIT",
+    "dependencies": {
+        "lodash": "4.17.21",
+        "react": "19.2.3",
+        "react-dom": "19.2.3",
+        "zod": "3.24.1"
+    },
+    "devDependencies": {
+        "@types/lodash": "4.17.15",
+        "@types/node": "22.13.0",
+        "@types/react": "19.0.8",
+        "@types/react-dom": "19.0.3",
+        "builtin-modules": "4.0.0",
+        "esbuild": "0.24.2",
+        "obsidian": "1.11.4",
+        "tslib": "2.8.1",
+        "typescript": "5.7.3"
+    }
+}

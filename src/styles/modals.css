@@ -1,0 +1,15 @@
+.d42-modal-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 0;
+}
+
+.d42-modal-container h1 {
+    margin-bottom: 0;
+}
+
+.d42-modal-processing-container {
+    text-align: center;
+    padding: 20px;
+}

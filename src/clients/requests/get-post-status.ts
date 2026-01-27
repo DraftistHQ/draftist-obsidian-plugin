@@ -1,0 +1,21 @@
+// CORE: core/lib/services/server/routes/providers/obsidian/blog/get_blog_post_status.rs
+
+import { z } from "zod"
+
+import * as Api from "src/clients/api"
+import * as Site from "src/models/site"
+import * as Post from "src/models/post"
+
+const Response = z.object({
+    status: Post.PostStatus.nullable(),
+})
+export type Response = z.infer<typeof Response>
+
+const parsers = {
+    success: Response,
+    failure: null,
+}
+
+export function send(siteId: Site.SiteId, postId: Post.PostId) {
+    return Api.get(`/sites/${siteId}/blog/post/${postId}/status`, { parsers })
+}

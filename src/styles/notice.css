@@ -1,0 +1,26 @@
+.d42-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+}
+
+.d42-notice-icon {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.d42-notice-content {
+    flex: 1;
+}
+
+.d42-notice-info .d42-notice-icon {
+    color: var(--text-accent);
+}
+
+.d42-notice-warning .d42-notice-icon {
+    color: var(--text-warning);
+}
+
+.d42-notice-error .d42-notice-icon {
+    color: var(--text-error);
+}
