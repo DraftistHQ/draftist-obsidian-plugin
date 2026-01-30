@@ -4,10 +4,12 @@ import { z } from "zod"
 import * as Content from "src/models/content"
 import * as Image from "src/models/image"
 import * as BlockId from "src/automations/block-id"
-import * as FM from "src/utils/frontmatter"
+import * as FM from "src/models/fm"
 import * as Opaque from "src/utils/opaque"
 import { Ok, Err, Result } from "src/utils/result"
-import * as log from "src/logger"
+
+import { PostId } from "src/models/content"
+export { PostId }
 
 export type FrontMatterErrors = FrontMatterError[]
 
@@ -21,9 +23,6 @@ export type FrontMatterError =
     | { _: typeof FrontMatterErrorType.MISSING_POSTED_ON }
     | { _: typeof FrontMatterErrorType.INVALID_POSTED_ON }
     | { _: typeof FrontMatterErrorType.MISSING_COVER_LINK }
-
-export const PostId = Opaque.id<"PostId">()
-export type PostId = z.infer<typeof PostId>
 
 export const CoverCredit = z.object({
     text: z.string(),
@@ -84,47 +83,23 @@ export const PostedOn = z.string().refine(
     { message: FrontMatterErrorType.INVALID_POSTED_ON },
 )
 
-export const InternalLink = z.discriminatedUnion("TAG", [
-    z.object({
-        TAG: z.literal("AnchorLink"),
-        blockId: BlockId.T,
-        mdLinkTarget: z.string(),
-    }),
-    z.object({
-        TAG: z.literal("ContentLink"),
-        contentId: PostId,
-        contentKind: Content.ContentKind,
-        blockId: BlockId.T.nullable(),
-        mdLinkTarget: z.string(),
-    }),
-])
-export type InternalLink = z.infer<typeof InternalLink>
-
 export const PublishedPostSlug = z.string().brand<"PublishedPostSlug">()
 export type PublishedPostSlug = z.infer<typeof PublishedPostSlug>
-
-export const FM_D42_PREFIX = "[d42]"
-
-export const FM_D42_CONTENT_KIND = `${FM_D42_PREFIX} content kind` as const
-export const FM_D42_CONTENT_ID = `${FM_D42_PREFIX} content id` as const
-export const FM_D42_LAST_PUBLISHED_TITLE = `${FM_D42_PREFIX} published title` as const
-export const FM_D42_LAST_PUBLISHED_SLUG = `${FM_D42_PREFIX} published slug` as const
-export const FM_D42_LAST_PUBLISHED_ON = `${FM_D42_PREFIX} published on` as const
 
 export const PublishableFrontmatter = z.object({
     status: PostStatus.nullable().optional(),
     description: z.string().nullable().optional(),
+    "posted on": PostedOn,
     cover: z.string().nullable().optional(),
     "cover credit text": z.string().nullable().optional(),
     "cover credit link": z.string().nullable().optional(),
-    "posted on": PostedOn,
     slug: PostSlug.nullable().optional(),
     tags: z.array(z.string()).nullable().optional(),
-    [FM_D42_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
-    [FM_D42_CONTENT_ID]: PostId.nullable().optional(),
-    [FM_D42_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
-    [FM_D42_LAST_PUBLISHED_SLUG]: PublishedPostSlug.nullable().optional(),
-    [FM_D42_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
+    [FM.D42_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
+    [FM.D42_CONTENT_ID]: PostId.nullable().optional(),
+    [FM.D42_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
+    [FM.D42_LAST_PUBLISHED_SLUG]: PublishedPostSlug.nullable().optional(),
+    [FM.D42_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
 })
 export type PublishableFrontmatter = z.infer<typeof PublishableFrontmatter>
 
@@ -137,17 +112,16 @@ export const OrderedFrontmatter: Array<keyof PublishableFrontmatter> = [
     "cover credit link",
     "slug",
     "tags",
-    FM_D42_CONTENT_KIND,
-    FM_D42_CONTENT_ID,
-    FM_D42_LAST_PUBLISHED_TITLE,
-    FM_D42_LAST_PUBLISHED_SLUG,
-    FM_D42_LAST_PUBLISHED_ON,
+    FM.D42_CONTENT_KIND,
+    FM.D42_CONTENT_ID,
+    FM.D42_LAST_PUBLISHED_TITLE,
+    FM.D42_LAST_PUBLISHED_SLUG,
+    FM.D42_LAST_PUBLISHED_ON,
 ]
 
 export const Frontmatter = PublishableFrontmatter.partial()
 export type Frontmatter = z.infer<typeof Frontmatter>
 
-export const IMAGES_FOLDER = "images"
 export const IMAGE_PREFIX_POST = "post"
 export const IMAGE_PREFIX_COVER = "cover"
 
@@ -156,26 +130,8 @@ export function isNormalizedImageFilename(filename: string): boolean {
     return pattern.test(filename)
 }
 
-export async function copyImageFileToPostSubfolder(
-    app: Obsidian.App,
-    postFolder: Obsidian.TFolder,
-    imageFileName: string,
-    imageFile: File,
-) {
-    const imagesFolderPath = Obsidian.normalizePath(`${postFolder.path}/${IMAGES_FOLDER}`)
-    const imagesFolderExists = await app.vault.adapter.exists(imagesFolderPath)
-    if (!imagesFolderExists) {
-        await app.vault.createFolder(imagesFolderPath)
-    }
-
-    const imagePath = Obsidian.normalizePath(`${imagesFolderPath}/${imageFileName}`)
-    const imageBuffer = await imageFile.arrayBuffer()
-    await app.vault.adapter.writeBinary(imagePath, Buffer.from(imageBuffer))
-}
-
-export function getFrontmatter(app: Obsidian.App, file: Obsidian.TFile): Frontmatter | null {
-    const fileCache = app.metadataCache.getFileCache(file)
-    return fileCache?.frontmatter ? (fileCache.frontmatter as Frontmatter) : null
+export function getFrontmatter(app: Obsidian.App, file: Obsidian.TFile) {
+    return FM.getFrontmatter<Frontmatter>(app, file)
 }
 
 export function validateFrontmatter(
@@ -214,21 +170,8 @@ export function validateFrontmatter(
     }
 }
 
-export async function updateFrontmatter(
-    app: Obsidian.App,
-    file: Obsidian.TFile,
-    fn: (meta: Frontmatter) => void,
-): Promise<Result<null, Error>> {
-    try {
-        await app.fileManager.processFrontMatter(file, frontmatter => {
-            fn(frontmatter)
-            FM.ensureOrder(frontmatter, OrderedFrontmatter)
-        })
-        return Ok(null)
-    } catch (error) {
-        log.error("Failed to update frontmatter", error)
-        return Err(error as Error)
-    }
+export function updateFrontmatter(app: Obsidian.App, file: Obsidian.TFile, fn: (meta: Frontmatter) => void) {
+    return FM.updateFrontmatter(app, file, OrderedFrontmatter, fn)
 }
 
 export type Asset = Image.ImageFile<{ isCover: boolean }>

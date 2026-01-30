@@ -1,5 +1,6 @@
 import * as Obsidian from "obsidian"
 
+import * as Assets from "src/models/assets"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
@@ -140,7 +141,7 @@ class InsertImageModal extends Obsidian.Modal {
 
         // Copy image to images folder
         const imageFileName = Image.generateUniqueFilename(this.formState.imageFile.name, Post.IMAGE_PREFIX_POST)
-        await Post.copyImageFileToPostSubfolder(this.app, folder, imageFileName, this.formState.imageFile)
+        await Assets.copyImageFileToSubfolder(this.app, folder, imageFileName, this.formState.imageFile)
 
         // Build markdown
         const caption = this.formState.caption.trim()

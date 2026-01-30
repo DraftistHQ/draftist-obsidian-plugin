@@ -3,6 +3,7 @@ import * as Obsidian from "obsidian"
 import type Plugin from "src/main"
 import * as Site from "src/models/site"
 import * as Post from "src/models/post"
+import * as FM from "src/models/fm"
 import * as GetPostStatusRequest from "src/clients/requests/get-post-status"
 import { OK, ERROR } from "src/utils/result"
 import * as log from "src/logger"
@@ -94,7 +95,7 @@ export class PendingSyncsManager {
         try {
             // Get post ID from frontmatter
             const frontmatter = Post.getFrontmatter(this.plugin.app, file)
-            const postId = frontmatter?.[Post.FM_D42_CONTENT_ID]
+            const postId = frontmatter?.[FM.D42_CONTENT_ID]
 
             if (!postId) {
                 log.error("Cannot sync blog post status: missing post ID in frontmatter", { file: file.path })

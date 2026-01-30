@@ -5,6 +5,7 @@ import { z } from "zod"
 import * as Api from "src/clients/api"
 import * as Site from "src/models/site"
 import * as Post from "src/models/post"
+import * as Content from "src/models/content"
 import * as Image from "src/models/image"
 
 const PostData = z.object({
@@ -14,7 +15,7 @@ const PostData = z.object({
     status: Post.PostStatus.nullable(),
     slug: Post.PostSlug.nullable(),
     postedOn: z.string(),
-    links: z.array(Post.InternalLink),
+    links: z.array(Content.InternalLink),
     images: z.array(Image.PublishableImage),
 })
 type PostData = z.infer<typeof PostData>
@@ -190,7 +191,7 @@ const Error = z.union([
     }),
     z.object({
         TAG: z.literal("BrokenLinks"),
-        links: z.array(Post.InternalLink),
+        links: z.array(Content.InternalLink),
     }),
     z.object({
         TAG: z.literal("MissingImages"),

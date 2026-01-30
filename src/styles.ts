@@ -2,6 +2,7 @@ import * as Obsidian from "obsidian"
 
 import * as Config from "src/config"
 import * as Post from "src/models/post"
+import * as FM from "src/models/fm"
 import * as Site from "src/models/site"
 
 type StyleElements = {
@@ -46,7 +47,7 @@ export class Styles {
         if (Config.Store.debugging().exposeInternalMetadata) return
 
         let css = `
-            [data-property-key^="${Post.FM_D42_PREFIX}"] {
+            [data-property-key^="${FM.D42_PREFIX}"] {
                 display: none !important;
             }
         `

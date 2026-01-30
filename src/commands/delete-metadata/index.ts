@@ -2,6 +2,7 @@ import * as Obsidian from "obsidian"
 
 import * as Config from "src/config"
 import * as Post from "src/models/post"
+import * as FM from "src/models/fm"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
 import { OK, ERROR } from "src/utils/result"
@@ -52,7 +53,7 @@ export function run(app: Obsidian.App): void {
         // Delete frontmatter metadata
         const result = await Post.updateFrontmatter(app, file, meta => {
             Object.keys(meta).forEach(key => {
-                if (key.startsWith(Post.FM_D42_PREFIX)) {
+                if (key.startsWith(FM.D42_PREFIX)) {
                     delete (meta as Record<string, any>)[key]
                 }
             })

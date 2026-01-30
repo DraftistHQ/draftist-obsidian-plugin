@@ -1,5 +1,6 @@
 import * as Obsidian from "obsidian"
 
+import * as Assets from "src/models/assets"
 import * as Image from "src/models/image"
 import * as Post from "src/models/post"
 import * as Notice from "src/notice"
@@ -307,7 +308,7 @@ export async function normalizeImages(app: Obsidian.App, file: Obsidian.TFile): 
         return
     }
 
-    const imagesFolderPath = Obsidian.normalizePath(`${folder.path}/${Post.IMAGES_FOLDER}`)
+    const imagesFolderPath = Obsidian.normalizePath(`${folder.path}/${Assets.IMAGES_FOLDER}`)
 
     try {
         // Step 1: Collect all images

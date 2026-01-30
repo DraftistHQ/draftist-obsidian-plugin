@@ -1,5 +1,6 @@
 import * as Obsidian from "obsidian"
 
+import * as Assets from "src/models/assets"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
@@ -113,7 +114,7 @@ class InsertGalleryModal extends Obsidian.Modal {
 
         for (const imageFile of this.formState.imageFiles) {
             const imageFileName = Image.generateUniqueFilename(imageFile.name, Post.IMAGE_PREFIX_POST)
-            await Post.copyImageFileToPostSubfolder(this.app, folder, imageFileName, imageFile)
+            await Assets.copyImageFileToSubfolder(this.app, folder, imageFileName, imageFile)
             imageFileNames.push(imageFileName)
         }
 

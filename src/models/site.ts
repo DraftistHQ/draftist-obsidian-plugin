@@ -74,6 +74,18 @@ export function isFileManaged(file: Obsidian.TFile): boolean {
 }
 
 export function getSiteForFile(file: Obsidian.TFile): Result<Config.SiteSettings | void, ValidateSitesError> {
+    return getSiteForPath(file.path)
+}
+
+export function getSiteAndModuleForFile(file: Obsidian.TFile): Result<SiteAndModule, GetSiteForFileError> {
+    return getSiteAndModuleForPath(file.path)
+}
+
+export function getSiteAndModuleForFolder(folder: Obsidian.TFolder): Result<SiteAndModule, GetSiteForFileError> {
+    return getSiteAndModuleForPath(folder.path)
+}
+
+function getSiteForPath(path: string): Result<Config.SiteSettings | void, ValidateSitesError> {
     let settings = Config.Store.userSettings()
     let sites = settings.sites as Config.SitesSettings
 
@@ -82,6 +94,8 @@ export function getSiteForFile(file: Obsidian.TFile): Result<Config.SiteSettings
         return Err(validation.error)
     }
 
+    const normalizedPath = Obsidian.normalizePath(path)
+
     let site = Record.values(sites).find(site => {
         if (!site.path) return false
 
@@ -89,16 +103,14 @@ export function getSiteForFile(file: Obsidian.TFile): Result<Config.SiteSettings
         if (site.path === "/") return true
 
         const sitePath = Obsidian.normalizePath(site.path)
-        const filePath = Obsidian.normalizePath(file.path)
-
-        return filePath.startsWith(sitePath)
+        return normalizedPath.startsWith(sitePath)
     })
 
     return Ok(site)
 }
 
-export function getSiteAndModuleForFile(file: Obsidian.TFile): Result<SiteAndModule, GetSiteForFileError> {
-    let siteResult = getSiteForFile(file)
+function getSiteAndModuleForPath(path: string): Result<SiteAndModule, GetSiteForFileError> {
+    let siteResult = getSiteForPath(path)
 
     switch (siteResult._) {
         case ERROR:
@@ -114,12 +126,12 @@ export function getSiteAndModuleForFile(file: Obsidian.TFile): Result<SiteAndMod
                 return Err({ _: "SITE_DISABLED", site: matchingSite.config.addresses.primary })
             }
 
+            const normalizedPath = Obsidian.normalizePath(path)
+
             const matchingModule = matchingSite.config.modules.find(module => {
                 const sitePath = matchingSite.path === "/" ? "" : matchingSite.path
                 const modulePath = Obsidian.normalizePath(`${sitePath}/${module.name}`)
-                const filePath = Obsidian.normalizePath(file.path)
-
-                return filePath.startsWith(modulePath)
+                return normalizedPath.startsWith(modulePath)
             })
 
             if (!matchingModule) {

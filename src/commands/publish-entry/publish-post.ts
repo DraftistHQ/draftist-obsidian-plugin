@@ -5,6 +5,7 @@ import * as Site from "src/models/site"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Content from "src/models/content"
+import * as FM from "src/models/fm"
 import * as BlockId from "src/automations/block-id"
 import * as Api from "src/clients/api"
 import * as PublishPostRequest from "src/clients/requests/publish-post"
@@ -61,7 +62,7 @@ export async function prepareForPublishing(
         return Err({ _: "NO_FRONTMATTER" })
     }
 
-    let links: Array<Post.InternalLink> = []
+    let links: Array<Content.InternalLink> = []
 
     const currentAbsolutePath = file.path
 
@@ -87,7 +88,7 @@ export async function prepareForPublishing(
 
             // TODO: Handle cross-site links when user links to document from another site within the same vault
 
-            let internalLink: Post.InternalLink
+            let internalLink: Content.InternalLink
 
             const isLocalLink = currentAbsolutePath === linkedFile.path
 
@@ -110,8 +111,8 @@ export async function prepareForPublishing(
 
                 const meta = linkedMetadata as Post.Frontmatter
 
-                const contentId = meta["[d42] content id"]
-                const contentType = Content.ContentKind.safeParse(meta["[d42] content kind"])
+                const contentId = meta[FM.D42_CONTENT_ID]
+                const contentType = Content.ContentKind.safeParse(meta[FM.D42_CONTENT_KIND])
 
                 if (!contentId || !contentType.success) {
                     return Err({ _: "LINKED_RESOURCE_IS_NOT_PUBLISHED", link })
@@ -337,7 +338,7 @@ export async function prepareForPublishing(
     let description = frontmatter["description"] || null
     let slug = frontmatter["slug"] || null
     let postedOn = frontmatter["posted on"]
-    let d42PostId = frontmatter["[d42] content id"]
+    let d42PostId = frontmatter[FM.D42_CONTENT_ID]
 
     let cover: Post.Cover | null = null
 
@@ -412,11 +413,11 @@ export async function publish(
         case OK: {
             // TODO: Handle error
             Post.updateFrontmatter(app, file, meta => {
-                meta["[d42] content id"] = result.data.id
-                meta["[d42] content kind"] = Content.BlogPostContentKind.value
-                meta["[d42] published title"] = file.basename
-                meta["[d42] published slug"] = result.data.slug
-                meta["[d42] published on"] = file.stat.mtime
+                meta[FM.D42_CONTENT_ID] = result.data.id
+                meta[FM.D42_CONTENT_KIND] = Content.BlogPostContentKind.value
+                meta[FM.D42_LAST_PUBLISHED_TITLE] = file.basename
+                meta[FM.D42_LAST_PUBLISHED_SLUG] = result.data.slug
+                meta[FM.D42_LAST_PUBLISHED_ON] = file.stat.mtime
             })
             break
         }
@@ -431,8 +432,8 @@ export async function publish(
 
 function isFileChanged(file: Obsidian.TFile, frontmatter: Post.Frontmatter) {
     // TODO: We should probably move this check to the server since user might preview a draft without publishing it
-    let d42LastPublishedOn = frontmatter["[d42] published on"]
-    let d42LastPublishedTitle = frontmatter["[d42] published title"]
+    let d42LastPublishedOn = frontmatter[FM.D42_LAST_PUBLISHED_ON]
+    let d42LastPublishedTitle = frontmatter[FM.D42_LAST_PUBLISHED_TITLE]
 
     if (!d42LastPublishedOn || !d42LastPublishedTitle) return true // missing key means it's never been published
 

@@ -1,6 +1,7 @@
 import * as Obsidian from "obsidian"
 
 import type Plugin from "src/main"
+import * as Assets from "src/models/assets"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
@@ -109,7 +110,7 @@ export class SetCoverImageModal extends Obsidian.Modal {
 
         // Copy image to images folder
         const coverFileName = Image.generateUniqueFilename(this.formState.imageFile.name, Post.IMAGE_PREFIX_COVER)
-        Post.copyImageFileToPostSubfolder(this.app, folder, coverFileName, this.formState.imageFile)
+        Assets.copyImageFileToSubfolder(this.app, folder, coverFileName, this.formState.imageFile)
 
         // Update frontmatter
         const creditText = this.formState.creditText.trim()
