@@ -4,6 +4,7 @@ import * as Assets from "src/models/assets"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
+import * as FieldError from "src/ui/field-error"
 import * as log from "src/logger"
 
 // TODO: Current gallery UX is meh. Things to implement:
@@ -20,6 +21,7 @@ class InsertGalleryModal extends Obsidian.Modal {
     private file: Obsidian.TFile
     private formState: FormState
     private imageButtonEl: HTMLButtonElement | null = null
+    private imageErrorEl: HTMLElement | null = null
 
     constructor(app: Obsidian.App, file: Obsidian.TFile) {
         super(app)
@@ -38,7 +40,7 @@ class InsertGalleryModal extends Obsidian.Modal {
 
         this.modalEl.style.width = "600px"
 
-        new Obsidian.Setting(contentEl)
+        const imagesSetting = new Obsidian.Setting(contentEl)
             .setName("Images")
             .setDesc("Select images for the gallery")
             .addButton(button => {
@@ -48,9 +50,11 @@ class InsertGalleryModal extends Obsidian.Modal {
                     if (imageFiles.length > 0) {
                         this.formState.imageFiles = imageFiles
                         button.setButtonText(`${imageFiles.length} image(s) selected`)
+                        this.hideImageError()
                     }
                 })
             })
+        this.imageErrorEl = FieldError.createErrorEl(imagesSetting.infoEl)
 
         new Obsidian.Setting(contentEl)
             .setName("Caption")
@@ -83,9 +87,21 @@ class InsertGalleryModal extends Obsidian.Modal {
             )
     }
 
+    showImageError(message: string) {
+        if (this.imageErrorEl) {
+            FieldError.show(null, this.imageErrorEl, message)
+        }
+    }
+
+    hideImageError() {
+        if (this.imageErrorEl) {
+            FieldError.clear(null, this.imageErrorEl)
+        }
+    }
+
     async handleSubmit() {
         if (this.formState.imageFiles.length === 0) {
-            Notice.warning("Please select at least one image")
+            this.showImageError("Please select at least one image")
             return
         }
 

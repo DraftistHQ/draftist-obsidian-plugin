@@ -2,13 +2,16 @@ import * as Obsidian from "obsidian"
 
 import type Plugin from "src/main"
 import * as Config from "src/config"
+import * as Content from "src/models/content"
 import * as Post from "src/models/post"
 import * as Site from "src/models/site"
 import * as Notice from "src/notice"
-import * as Record from "src/utils/record"
+import * as FieldError from "src/ui/field-error"
 import { OK, ERROR } from "src/utils/result"
 import * as Timer from "src/utils/timer"
 import * as log from "src/logger"
+
+// --- Modal
 
 type FormState = {
     siteId: Site.SiteId | null
@@ -17,24 +20,29 @@ type FormState = {
     description: string
 }
 
+type CreateBlogPostOptions = {
+    defaultStatus: Post.PostPrepublishedStatus
+    prefilledSiteId?: Site.SiteId
+}
+
 export class CreateBlogPostModal extends Obsidian.Modal {
     private formState: FormState
     private sites: Config.SiteSettings[]
     private titleInputEl: HTMLInputElement | null = null
+    private titleErrorEl: HTMLElement | null = null
+    private siteDropdownEl: HTMLSelectElement | null = null
+    private siteErrorEl: HTMLElement | null = null
 
-    constructor(plugin: Plugin, defaultStatus: Post.PostPrepublishedStatus) {
+    constructor(plugin: Plugin, options: CreateBlogPostOptions) {
         super(plugin.app)
 
         // Load enabled sites with blog modules
-        const sites = Config.Store.sites()
-        this.sites = Record.values(sites).filter(
-            site => site.enabled && !!site.path && site.config.modules.some(m => m.kind === "blog"),
-        )
+        this.sites = Site.sitesWithModule("blog")
 
         // Initialize form state
         this.formState = {
-            siteId: this.sites.length === 1 ? this.sites[0].config.id : null,
-            status: defaultStatus,
+            siteId: options.prefilledSiteId ?? (this.sites.length === 1 ? this.sites[0].config.id : null),
+            status: options.defaultStatus,
             title: "",
             description: "",
         }
@@ -50,22 +58,13 @@ export class CreateBlogPostModal extends Obsidian.Modal {
 
         this.modalEl.style.width = modalWidth
 
-        if (this.sites.length === 0) {
-            contentEl.createEl("p", {
-                text: "No enabled sites with blog modules found. Please configure a site first in Draft42 plugin settings.",
-                cls: "d42-alert-message d42-alert-message-warning",
-            })
-            new Obsidian.Setting(contentEl).addButton(btn => btn.setButtonText("Close").onClick(() => this.close()))
-            return
-        }
-
         // Site select
         if (this.sites.length > 1) {
             let defaultSiteId: Site.SiteId | null = !this.formState.siteId
                 ? this.sites.find(site => site.default)?.config.id || this.sites[0]?.config.id
                 : null
 
-            new Obsidian.Setting(contentEl)
+            const siteSetting = new Obsidian.Setting(contentEl)
                 .setName("Site")
                 .setDesc("Select the site for this blog post")
                 .addDropdown(dropdown => {
@@ -77,8 +76,11 @@ export class CreateBlogPostModal extends Obsidian.Modal {
                     })
                     dropdown.setValue(this.formState.siteId || defaultSiteId || "").onChange(value => {
                         this.formState.siteId = value as Site.SiteId
+                        this.clearSiteError()
                     })
+                    this.siteDropdownEl = dropdown.selectEl
                 })
+            this.siteErrorEl = FieldError.createErrorEl(siteSetting.infoEl)
         }
 
         // Status select
@@ -88,7 +90,7 @@ export class CreateBlogPostModal extends Obsidian.Modal {
             .addDropdown(dropdown =>
                 dropdown
                     .addOption(Post.PostStatusIdea.value, Post.PostStatusIdea.value)
-                    .addOption(Post.PostStatusDraft.value, Post.PostStatusDraft.value)
+                    .addOption(Content.ContentStatusDraft.value, Content.ContentStatusDraft.value)
                     .setValue(this.formState.status)
                     .onChange(value => {
                         this.formState.status = value as Post.PostPrepublishedStatus
@@ -96,7 +98,7 @@ export class CreateBlogPostModal extends Obsidian.Modal {
             )
 
         // Title input
-        new Obsidian.Setting(contentEl)
+        const titleSetting = new Obsidian.Setting(contentEl)
             .setName("Title")
             .setDesc("Blog post title")
             .addText(text => {
@@ -111,12 +113,11 @@ export class CreateBlogPostModal extends Obsidian.Modal {
 
                 text.inputEl.addEventListener("keydown", this.handleKeyboardSubmission)
 
-                // Store reference to input element
                 this.titleInputEl = text.inputEl
 
-                // Auto-focus title field
                 Timer.onNextTick(() => text.inputEl.focus())
             })
+        this.titleErrorEl = FieldError.createErrorEl(titleSetting.infoEl)
 
         // Description field
         new Obsidian.Setting(contentEl)
@@ -153,22 +154,33 @@ export class CreateBlogPostModal extends Obsidian.Modal {
         }
     }
 
+    showSiteError(message: string) {
+        if (this.siteErrorEl) {
+            FieldError.show(this.siteDropdownEl, this.siteErrorEl, message)
+        }
+    }
+
+    clearSiteError() {
+        if (this.siteErrorEl) {
+            FieldError.clear(this.siteDropdownEl, this.siteErrorEl)
+        }
+    }
+
     showTitleError(message: string) {
-        Notice.warning(message)
-        if (this.titleInputEl) {
-            this.titleInputEl.style.borderColor = "var(--text-error)"
+        if (this.titleInputEl && this.titleErrorEl) {
+            FieldError.show(this.titleInputEl, this.titleErrorEl, message)
         }
     }
 
     clearTitleError() {
-        if (this.titleInputEl) {
-            this.titleInputEl.style.borderColor = ""
+        if (this.titleInputEl && this.titleErrorEl) {
+            FieldError.clear(this.titleInputEl, this.titleErrorEl)
         }
     }
 
     async handleCreate() {
         if (!this.formState.siteId) {
-            Notice.warning("Please select a site")
+            this.showSiteError("Please select a site")
             return
         }
 
@@ -254,4 +266,52 @@ export class CreateBlogPostModal extends Obsidian.Modal {
         const { contentEl } = this
         contentEl.empty()
     }
+}
+
+// --- Context Menu
+
+export function registerFileMenuEventHandler(plugin: Plugin): void {
+    plugin.registerEvent(
+        plugin.app.workspace.on("file-menu", (menu: Obsidian.Menu, file: Obsidian.TAbstractFile) => {
+            if (!Config.Store.onboarded()) return
+
+            const result =
+                file instanceof Obsidian.TFile
+                    ? Site.getSiteAndModuleForFile(file)
+                    : Site.getSiteAndModuleForFolder(file as Obsidian.TFolder)
+
+            if (result._ === ERROR) return
+
+            const { site, module } = result.data
+            if (module.kind !== "blog") return
+
+            menu.addSeparator()
+
+            menu.addItem(item => item.setTitle(`Draft42: ${module.name}`).setIsLabel(true))
+
+            menu.addItem(item =>
+                item
+                    .setTitle("Add post idea")
+                    .setIcon("lightbulb")
+                    .onClick(() => {
+                        new CreateBlogPostModal(plugin, {
+                            defaultStatus: "Idea",
+                            prefilledSiteId: site.config.id,
+                        }).open()
+                    }),
+            )
+
+            menu.addItem(item =>
+                item
+                    .setTitle("Add post draft")
+                    .setIcon("file-plus")
+                    .onClick(() => {
+                        new CreateBlogPostModal(plugin, {
+                            defaultStatus: "Draft",
+                            prefilledSiteId: site.config.id,
+                        }).open()
+                    }),
+            )
+        }),
+    )
 }

@@ -2,11 +2,12 @@ import * as Obsidian from "obsidian"
 
 import * as Config from "src/config"
 import * as Site from "src/models/site"
-import * as Post from "src/models/post"
+import * as Doc from "src/models/doc"
 import * as Image from "src/models/image"
 import * as Content from "src/models/content"
 import * as FM from "src/models/fm"
-import * as PublishPostRequest from "src/clients/requests/publish-post"
+import * as PublishDocRequest from "src/clients/requests/publish-doc"
+import * as Position from "src/utils/position"
 import { Ok, Err, OK, ERROR, Result, GenericError } from "src/utils/result"
 
 export type PrePublishingOptions = {
@@ -15,20 +16,19 @@ export type PrePublishingOptions = {
 
 export type PrePublishingError =
     | { _: "MISSING_FRONTMATTER" }
-    | { _: "INVALID_FRONTMATTER"; errors: Post.FrontmatterErrors }
+    | { _: "INVALID_FRONTMATTER"; errors: Doc.FrontmatterErrors }
+    | { _: "MISSING_POSITION" }
     | { _: "NO_CHANGES_SINCE_LAST_PUBLISH" }
     | { _: "FAILED_TO_GET_SITE_AND_MODULE"; error: Site.GetSiteForFileError }
     | { _: "INVALID_SETTINGS"; errors: Config.SiteSettingsValidationError[] }
+    | Doc.ResolveParentError
     | Content.ResolveLinkError
     | Content.ProcessAssetsError
-    | { _: "INVALID_EXTERNAL_COVER_IMAGE_URL"; url: string }
-    | { _: "INVALID_EXTERNAL_COVER_CREDIT_LINK"; link: string }
     | { _: "INTERNAL_ERROR"; error: GenericError }
 
 export type PrePublishingData = {
     site: Config.SiteSettings
-    post: PublishPostRequest.PublishablePost
-    status: Post.PostStatus | null
+    page: PublishDocRequest.PublishableDocPage
 }
 
 export async function prepareForPublishing(
@@ -44,9 +44,9 @@ export async function prepareForPublishing(
     if (!fileCache) return Err({ _: "INTERNAL_ERROR", error: new GenericError("Failed to get initial file cache") })
 
     // Validate frontmatter
-    var frontmatter!: Post.PublishableFrontmatter
+    var frontmatter!: Doc.PublishableFrontmatter
     if (fileCache.frontmatter) {
-        let result = Post.validateFrontmatter(app, file, fileCache.frontmatter, fileCache.frontmatterLinks)
+        let result = Doc.validateFrontmatter(fileCache.frontmatter)
         switch (result._) {
             case OK:
                 frontmatter = result.data
@@ -110,13 +110,10 @@ export async function prepareForPublishing(
     }
 
     // Process assets
-    var images!: { image: Image.PublishableImage; isCover: boolean }[]
+    var images!: Image.PublishableImage[]
     {
-        let assets = Post.collectAssets(app, file, fileCache)
-        let result = await Content.processAssets(site.config.id, assets, (asset, image) => ({
-            image,
-            isCover: asset.isCover,
-        }))
+        let assets = Doc.collectAssets(app, file, fileCache)
+        let result = await Content.processAssets(site.config.id, assets, (_, image) => image)
         switch (result._) {
             case OK:
                 images = result.data
@@ -143,12 +140,12 @@ export async function prepareForPublishing(
     }
 
     // Extract content body
-    var postBody!: string
+    var pageBody!: string
     {
         let result = Content.extractContentBody(app)
         switch (result._) {
             case OK:
-                postBody = result.data
+                pageBody = result.data
                 break
             case ERROR:
                 return Err({ _: "INTERNAL_ERROR", error: result.error })
@@ -157,90 +154,84 @@ export async function prepareForPublishing(
         }
     }
 
-    // Build post data
-    const title = file.basename
-    let status = frontmatter["status"] || null
-    let description = frontmatter["description"] || null
-    let slug = frontmatter["slug"] || null
+    // Resolve parent
+    var parentId!: Doc.DocPageId | null
+    {
+        let result = Doc.resolveParentId(file, app, site, siteModule)
+        switch (result._) {
+            case OK:
+                parentId = result.data
+                break
+            case ERROR:
+                return Err(result.error)
+            default:
+                result satisfies never
+        }
+    }
+
+    // Build page data
+    let title = file.basename
+    let description = frontmatter.description || null
+    let slug = frontmatter.slug || null
+    let d42PageId = frontmatter[FM.D42_CONTENT_ID]
+
+    let status = frontmatter.status || null
     let postedOn = frontmatter["posted on"] || null
-    let d42PostId = frontmatter[FM.D42_CONTENT_ID]
+    let position = frontmatter[FM.D42_POSITION]
 
-    let cover: Post.Cover | null = null
-
-    let coverCredit = null
-    let coverCreditText = frontmatter["cover credit text"]
-    let coverCreditLink = frontmatter["cover credit link"]
-
-    if (!!coverCreditText) {
-        if (!!coverCreditLink && !coverCreditLink.startsWith("http")) {
-            return Err({ _: "INVALID_EXTERNAL_COVER_CREDIT_LINK", link: coverCreditLink })
-        }
-        coverCredit = {
-            text: coverCreditText,
-            link: coverCreditLink || null,
+    if (position === undefined || position === null) {
+        // Backfill position from folder prefix
+        position = await backfillPosition(file, app)
+        if (position === null) {
+            return Err({ _: "MISSING_POSITION" })
         }
     }
 
-    let coverImageInternal = images.find(image => image.isCover)?.image.id
-
-    if (!!coverImageInternal) {
-        cover = { TAG: "Internal", imageId: coverImageInternal, credit: coverCredit }
-    } else {
-        let coverImageExternal = frontmatter["cover"]
-
-        if (!!coverImageExternal) {
-            if (coverImageExternal.startsWith("http")) {
-                cover = { TAG: "External", url: coverImageExternal, credit: coverCredit }
-            } else {
-                return Err({ _: "INVALID_EXTERNAL_COVER_IMAGE_URL", url: coverImageExternal })
-            }
-        }
-    }
-
-    let postData = {
+    let pageData = {
         title,
         description,
-        content: postBody,
-        cover,
+        content: pageBody,
         status,
         slug,
+        parentId,
+        position,
         postedOn,
         links,
-        images: images.map(image => image.image),
+        images,
     }
 
-    let postKind: PublishPostRequest.PublishablePostKind
+    let pageKind: PublishDocRequest.PublishableDocPageKind
 
-    if (!d42PostId) {
-        postKind = "NewPost"
+    if (!d42PageId) {
+        pageKind = "NewPage"
     } else {
-        postKind = { TAG: "ExistingPost", id: d42PostId }
+        pageKind = { TAG: "ExistingPage", id: d42PageId }
     }
 
-    let post = {
+    let page = {
         siteModuleId: siteModule.id,
-        postKind,
-        postData,
+        pageKind,
+        pageData,
     }
 
-    return Ok({ site, post, status })
+    return Ok({ site, page })
 }
 
 export async function publish(
     siteId: Site.SiteId,
-    post: PublishPostRequest.PublishablePost,
+    page: PublishDocRequest.PublishableDocPage,
     file: Obsidian.TFile,
     app: Obsidian.App,
 ) {
-    let result = await PublishPostRequest.send(siteId, post)
+    let result = await PublishDocRequest.send(siteId, page)
 
     switch (result._) {
         case OK: {
             // TODO: Handle error
-            Post.updateFrontmatter(app, file, meta => {
+            Doc.updateFrontmatter(app, file, meta => {
                 meta[FM.D42_CONTENT_ID] = result.data.id
-                meta[FM.D42_CONTENT_KIND] = Content.BlogPostContentKind.value
-                meta[FM.D42_LAST_PUBLISHED_TITLE] = post.postData.title
+                meta[FM.D42_CONTENT_KIND] = Content.DocPageContentKind.value
+                meta[FM.D42_LAST_PUBLISHED_TITLE] = page.pageData.title
                 meta[FM.D42_LAST_PUBLISHED_SLUG] = result.data.slug
                 meta[FM.D42_LAST_PUBLISHED_ON] = file.stat.mtime
             })
@@ -253,4 +244,76 @@ export async function publish(
     }
 
     return result
+}
+
+async function backfillPosition(file: Obsidian.TFile, app: Obsidian.App): Promise<number | null> {
+    const pageFolder = file.parent
+    if (!pageFolder) return null
+
+    const parentFolder = pageFolder.parent
+    if (!parentFolder) return null
+
+    const folderPrefix = Doc.extractPositionFromFolderName(pageFolder.name)
+    if (folderPrefix === null) return null
+
+    // Get siblings sorted by folder prefix
+    const siblings = parentFolder.children
+        .filter((c): c is Obsidian.TFolder => c instanceof Obsidian.TFolder)
+        .map(folder => {
+            const prefix = Doc.extractPositionFromFolderName(folder.name)
+            if (prefix === null) return null
+
+            const mdFile = folder.children.find(
+                (c): c is Obsidian.TFile => c instanceof Obsidian.TFile && c.extension === "md",
+            )
+            if (!mdFile) return null
+
+            const fm = Doc.getFrontmatter(app, mdFile)
+            const position = fm?.[FM.D42_POSITION]
+
+            return { folder, prefix, mdFile, position: typeof position === "number" ? position : null }
+        })
+        .filter((s): s is NonNullable<typeof s> => s !== null)
+        .sort((a, b) => a.prefix - b.prefix)
+
+    // Find our index in the sorted list
+    const ourIndex = siblings.findIndex(s => s.folder.path === pageFolder.path)
+    if (ourIndex === -1) return null
+
+    // Find neighbors with valid positions
+    let prevPosition: number | null = null
+    let nextPosition: number | null = null
+
+    for (let i = ourIndex - 1; i >= 0; i--) {
+        if (siblings[i].position !== null) {
+            prevPosition = siblings[i].position
+            break
+        }
+    }
+
+    for (let i = ourIndex + 1; i < siblings.length; i++) {
+        if (siblings[i].position !== null) {
+            nextPosition = siblings[i].position
+            break
+        }
+    }
+
+    // Calculate position
+    let position: number
+    if (prevPosition === null && nextPosition === null) {
+        position = Position.initial()
+    } else if (prevPosition === null) {
+        position = Position.prepend(nextPosition!)
+    } else if (nextPosition === null) {
+        position = Position.append(prevPosition)
+    } else {
+        position = Position.insert(prevPosition, nextPosition)
+    }
+
+    // Write to frontmatter
+    await Doc.updateFrontmatter(app, file, fm => {
+        fm[FM.D42_POSITION] = position
+    })
+
+    return position
 }

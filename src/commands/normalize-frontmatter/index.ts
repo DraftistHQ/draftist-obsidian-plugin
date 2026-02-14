@@ -1,6 +1,7 @@
 import * as Obsidian from "obsidian"
 
 import * as Site from "src/models/site"
+import * as Doc from "src/models/doc"
 import * as Post from "src/models/post"
 import * as Notice from "src/notice"
 import { OK, ERROR } from "src/utils/result"
@@ -54,8 +55,34 @@ export async function run(app: Obsidian.App): Promise<void> {
                     }
                 }
 
-                case "docs":
-                    return
+                case "docs": {
+                    const result = await Doc.updateFrontmatter(app, file, meta => {
+                        // Add missing base fields with default values
+                        if (!("status" in meta)) {
+                            meta.status = "Draft"
+                        }
+                        if (!("description" in meta)) {
+                            meta.description = null
+                        }
+                        if (!("posted on" in meta)) {
+                            meta["posted on"] = ""
+                        }
+                        if (!("tags" in meta)) {
+                            meta.tags = []
+                        }
+                    })
+
+                    switch (result._) {
+                        case OK: {
+                            Notice.info("Frontmatter normalized")
+                            return
+                        }
+                        case ERROR: {
+                            Notice.error("Failed to normalize frontmatter")
+                            return
+                        }
+                    }
+                }
 
                 default:
                     module.kind satisfies never

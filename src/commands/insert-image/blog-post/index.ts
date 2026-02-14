@@ -4,6 +4,7 @@ import * as Assets from "src/models/assets"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
+import * as FieldError from "src/ui/field-error"
 import * as log from "src/logger"
 
 type ImagePlacement = "wide" | "fit" | "narrow"
@@ -52,11 +53,7 @@ class InsertImageModal extends Obsidian.Modal {
 
         // It should be placed on the opposite side but Obsidian APIs
         // make it hard to provide proper error feedback
-        this.imageErrorEl = imageSetting.infoEl.createEl("div", {
-            attr: {
-                style: "display: none; color: var(--text-error); font-size: var(--font-ui-smaller); padding-top: var(--size-4-1);",
-            },
-        })
+        this.imageErrorEl = FieldError.createErrorEl(imageSetting.infoEl)
 
         new Obsidian.Setting(contentEl)
             .setName("Caption")
@@ -113,14 +110,13 @@ class InsertImageModal extends Obsidian.Modal {
 
     showImageError(message: string) {
         if (this.imageErrorEl) {
-            this.imageErrorEl.setText(message)
-            this.imageErrorEl.style.display = "block"
+            FieldError.show(null, this.imageErrorEl, message)
         }
     }
 
     hideImageError() {
         if (this.imageErrorEl) {
-            this.imageErrorEl.style.display = "none"
+            FieldError.clear(null, this.imageErrorEl)
         }
     }
 

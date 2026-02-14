@@ -20,6 +20,10 @@ export const Commands: Record<string, Command> = {
         id: "create-blog-post-draft",
         name: "Create new blog post draft",
     },
+    CREATE_DOC_PAGE: {
+        id: "create-doc-page",
+        name: "Create new doc page",
+    },
     INSERT_IMAGE: {
         id: "insert-image",
         name: "Insert image",

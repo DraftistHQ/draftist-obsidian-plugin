@@ -3,8 +3,10 @@ import * as Obsidian from "obsidian"
 import type Plugin from "src/main"
 import * as Site from "src/models/site"
 import * as Post from "src/models/post"
+import * as Doc from "src/models/doc"
 import * as FM from "src/models/fm"
-import * as GetPostStatusRequest from "src/clients/requests/get-post-status"
+import * as SyncPostRequest from "src/clients/requests/sync-post"
+import * as SyncDocRequest from "src/clients/requests/sync-doc"
 import { OK, ERROR } from "src/utils/result"
 import * as log from "src/logger"
 
@@ -67,7 +69,7 @@ export class PendingSyncsManager {
                         break
                     }
                     case "docs": {
-                        log.debug("Doc status sync not yet implemented")
+                        await this.syncDocPageStatus(file, site.config.id)
                         break
                     }
                     default:
@@ -93,7 +95,6 @@ export class PendingSyncsManager {
 
     private async syncBlogPostStatus(file: Obsidian.TFile, siteId: Site.SiteId) {
         try {
-            // Get post ID from frontmatter
             const frontmatter = Post.getFrontmatter(this.plugin.app, file)
             const postId = frontmatter?.[FM.D42_CONTENT_ID]
 
@@ -102,26 +103,26 @@ export class PendingSyncsManager {
                 return
             }
 
-            const result = await GetPostStatusRequest.send(siteId, postId)
+            const result = await SyncPostRequest.send(siteId, postId)
 
             switch (result._) {
                 case OK: {
-                    // Sync status if server has a value
-                    if (result.data.status) {
-                        const currentLocalStatus = frontmatter?.status
+                    const data = result.data
+                    const statusChanged = data.status != null && data.status !== frontmatter?.status
+                    const postedOnAutoAssigned = !frontmatter?.["posted on"] ? data.postedOnAutoAssigned : null
 
-                        if (result.data.status !== currentLocalStatus) {
-                            await Post.updateFrontmatter(this.plugin.app, file, meta => {
-                                meta["status"] = result.data.status
-                            })
-                            log.debug("Updated blog post status", {
-                                file: file.path,
-                                oldStatus: currentLocalStatus,
-                                newStatus: result.data.status,
-                            })
-                        } else {
-                            log.debug("No status changes detected for blog post")
-                        }
+                    if (statusChanged || postedOnAutoAssigned) {
+                        await Post.updateFrontmatter(this.plugin.app, file, meta => {
+                            if (statusChanged) meta["status"] = data.status
+                            if (postedOnAutoAssigned) meta["posted on"] = postedOnAutoAssigned
+                        })
+                        log.debug("Synced blog post", {
+                            file: file.path,
+                            ...(statusChanged && { status: data.status }),
+                            ...(postedOnAutoAssigned && { postedOn: postedOnAutoAssigned }),
+                        })
+                    } else {
+                        log.debug("No changes detected for blog post")
                     }
                     break
                 }
@@ -132,6 +133,49 @@ export class PendingSyncsManager {
             }
         } catch (error) {
             log.error("Unexpected error during blog post status sync", error)
+        }
+    }
+
+    private async syncDocPageStatus(file: Obsidian.TFile, siteId: Site.SiteId) {
+        try {
+            const frontmatter = Doc.getFrontmatter(this.plugin.app, file)
+            const pageId = frontmatter?.[FM.D42_CONTENT_ID]
+
+            if (!pageId) {
+                log.error("Cannot sync doc page status: missing page ID in frontmatter", { file: file.path })
+                return
+            }
+
+            const result = await SyncDocRequest.send(siteId, pageId)
+
+            switch (result._) {
+                case OK: {
+                    const data = result.data
+                    const statusChanged = data.status != null && data.status !== frontmatter?.status
+                    const postedOnAutoAssigned = !frontmatter?.["posted on"] ? data.postedOnAutoAssigned : null
+
+                    if (statusChanged || postedOnAutoAssigned) {
+                        await Doc.updateFrontmatter(this.plugin.app, file, meta => {
+                            if (statusChanged) meta["status"] = data.status
+                            if (postedOnAutoAssigned) meta["posted on"] = postedOnAutoAssigned
+                        })
+                        log.debug("Synced doc page", {
+                            file: file.path,
+                            ...(statusChanged && { status: data.status }),
+                            ...(postedOnAutoAssigned && { postedOn: postedOnAutoAssigned }),
+                        })
+                    } else {
+                        log.debug("No changes detected for doc page")
+                    }
+                    break
+                }
+                case ERROR: {
+                    log.error("Failed to fetch doc page status for sync", { error: result.error })
+                    break
+                }
+            }
+        } catch (error) {
+            log.error("Unexpected error during doc page status sync", error)
         }
     }
 

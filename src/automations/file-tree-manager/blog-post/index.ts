@@ -1,6 +1,7 @@
 import * as Obsidian from "obsidian"
 
 import * as Config from "src/config"
+import * as Content from "src/models/content"
 import * as Post from "src/models/post"
 import * as Site from "src/models/site"
 import * as Notice from "src/notice"
@@ -89,7 +90,7 @@ function buildFolderPath(state: BlogPostState, site: Config.SiteSettings, module
 
     // Determine post folder name (with or without date prefix)
     let postFolderName: string
-    const postedOnResult = Post.PostedOn.safeParse(state.postedOn)
+    const postedOnResult = Content.PostedOn.safeParse(state.postedOn)
     if (postedOnResult.success) {
         const datePrefix = Obsidian.moment(postedOnResult.data).format("YYYY-MM-DD")
         postFolderName = `${datePrefix} - ${state.title}`

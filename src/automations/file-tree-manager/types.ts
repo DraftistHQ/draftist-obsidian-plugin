@@ -15,6 +15,17 @@ export type BlogPostChangeData = {
     state: BlogPostState
 }
 
+export type DocPageState = {
+    title: string
+    position: number | null
+}
+
+export type DocPageChangeData = {
+    file: Obsidian.TFile
+    folder: Obsidian.TFolder
+    state: DocPageState
+}
+
 export type DetectedContentChange =
     | {
           kind: "blog"
@@ -26,5 +37,5 @@ export type DetectedContentChange =
           kind: "docs"
           site: Config.SiteSettings
           module: Site.SiteModule
-          data: unknown // DocsPageChangeData
+          data: DocPageChangeData
       }

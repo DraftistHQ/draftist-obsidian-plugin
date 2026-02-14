@@ -19,6 +19,7 @@ export const SiteModuleId = Opaque.id<"SiteModuleId">()
 export type SiteModuleId = z.infer<typeof SiteModuleId>
 
 const SiteModuleKind = z.enum(["blog", "docs"])
+export type SiteModuleKind = z.infer<typeof SiteModuleKind>
 
 const SiteModule = z.object({
     id: SiteModuleId,
@@ -206,6 +207,17 @@ export function validateSites(sites: Config.SitesSettings): Result<void, Validat
     }
 
     return Ok(undefined)
+}
+
+export function sitesWithModule(kind: SiteModuleKind): Config.SiteSettings[] {
+    const sites = Config.Store.sites()
+    return Record.values(sites).filter(
+        site => site.enabled && !!site.path && site.config.modules.some(m => m.kind === kind),
+    )
+}
+
+export function hasModuleOfKind(kind: SiteModuleKind): boolean {
+    return sitesWithModule(kind).length > 0
 }
 
 export async function createFolders(app: Obsidian.App): Promise<Result<void, ValidateSitesError>> {

@@ -5,6 +5,7 @@ import * as Assets from "src/models/assets"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
+import * as FieldError from "src/ui/field-error"
 import * as log from "src/logger"
 import { ERROR } from "src/utils/result"
 
@@ -17,6 +18,7 @@ type FormState = {
 export class SetCoverImageModal extends Obsidian.Modal {
     private file: Obsidian.TFile
     private formState: FormState
+    private imageErrorEl: HTMLElement | null = null
 
     constructor(plugin: Plugin, file: Obsidian.TFile) {
         super(plugin.app)
@@ -35,7 +37,7 @@ export class SetCoverImageModal extends Obsidian.Modal {
 
         this.modalEl.style.width = "600px"
 
-        new Obsidian.Setting(contentEl)
+        const imageSetting = new Obsidian.Setting(contentEl)
             .setName("Image")
             .setDesc("Select a cover image")
             .addButton(button => {
@@ -44,9 +46,11 @@ export class SetCoverImageModal extends Obsidian.Modal {
                     if (imageFile) {
                         this.formState.imageFile = imageFile
                         button.setButtonText(`Selected: ${imageFile.name}`)
+                        this.hideImageError()
                     }
                 })
             })
+        this.imageErrorEl = FieldError.createErrorEl(imageSetting.infoEl)
 
         new Obsidian.Setting(contentEl)
             .setName("Credit")
@@ -82,9 +86,21 @@ export class SetCoverImageModal extends Obsidian.Modal {
             )
     }
 
+    showImageError(message: string) {
+        if (this.imageErrorEl) {
+            FieldError.show(null, this.imageErrorEl, message)
+        }
+    }
+
+    hideImageError() {
+        if (this.imageErrorEl) {
+            FieldError.clear(null, this.imageErrorEl)
+        }
+    }
+
     async handleSubmit() {
         if (!this.formState.imageFile) {
-            Notice.warning("Please select an image")
+            this.showImageError("Please select an image")
             return
         }
 

@@ -7,6 +7,7 @@ export const D42_PREFIX = "[d42]"
 
 export const D42_CONTENT_KIND = `${D42_PREFIX} content kind` as const
 export const D42_CONTENT_ID = `${D42_PREFIX} content id` as const
+export const D42_POSITION = `${D42_PREFIX} position` as const
 export const D42_LAST_PUBLISHED_TITLE = `${D42_PREFIX} published title` as const
 export const D42_LAST_PUBLISHED_SLUG = `${D42_PREFIX} published slug` as const
 export const D42_LAST_PUBLISHED_ON = `${D42_PREFIX} published on` as const

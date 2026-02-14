@@ -3,13 +3,15 @@ import * as _ from "lodash"
 
 import * as Config from "src/config"
 import * as Notice from "src/notice"
+import * as Site from "src/models/site"
 import { Commands } from "src/commands"
 import { SettingTab } from "src/settings"
 import { Styles } from "src/styles"
 import { FileTreeManager } from "src/automations/file-tree-manager"
 import { PendingSyncsManager } from "src/automations/pending-syncs-manager"
 import { PublishingModal } from "src/commands/publish-entry"
-import { CreateBlogPostModal } from "src/commands/create-blog-post"
+import * as CreateBlogPostCmd from "src/commands/create-blog-post"
+import * as CreateDocPageCmd from "src/commands/create-doc-page"
 import { SetCoverImageModal } from "src/commands/set-cover-image"
 import * as InsertImageCmd from "src/commands/insert-image"
 import * as InsertGalleryCmd from "src/commands/insert-gallery"
@@ -49,6 +51,10 @@ export default class Draft42 extends Obsidian.Plugin {
         // Register file tree manager if enabled
         this.fileTreeManager.register()
 
+        // Register file menu handlers
+        CreateBlogPostCmd.registerFileMenuEventHandler(this)
+        CreateDocPageCmd.registerFileMenuEventHandler(this)
+
         // Register commands
 
         this.addCommand({
@@ -67,23 +73,40 @@ export default class Draft42 extends Obsidian.Plugin {
 
         this.addCommand({
             ...Commands.CREATE_BLOG_POST_IDEA,
-            callback: () => {
-                if (!Config.Store.onboarded()) {
-                    Notice.warning("Please complete plugin setup first. Open Draft42 settings.")
-                    return
+            checkCallback: (checking: boolean) => {
+                if (!Config.Store.onboarded()) return false
+                if (!Site.hasModuleOfKind("blog")) return false
+
+                if (!checking) {
+                    new CreateBlogPostCmd.CreateBlogPostModal(this, { defaultStatus: "Idea" }).open()
                 }
-                new CreateBlogPostModal(this, "Idea").open()
+                return true
             },
         })
 
         this.addCommand({
             ...Commands.CREATE_BLOG_POST_DRAFT,
-            callback: () => {
-                if (!Config.Store.onboarded()) {
-                    Notice.warning("Please complete plugin setup first. Open Draft42 settings.")
-                    return
+            checkCallback: (checking: boolean) => {
+                if (!Config.Store.onboarded()) return false
+                if (!Site.hasModuleOfKind("blog")) return false
+
+                if (!checking) {
+                    new CreateBlogPostCmd.CreateBlogPostModal(this, { defaultStatus: "Draft" }).open()
                 }
-                new CreateBlogPostModal(this, "Draft").open()
+                return true
+            },
+        })
+
+        this.addCommand({
+            ...Commands.CREATE_DOC_PAGE,
+            checkCallback: (checking: boolean) => {
+                if (!Config.Store.onboarded()) return false
+                if (!Site.hasModuleOfKind("docs")) return false
+
+                if (!checking) {
+                    new CreateDocPageCmd.CreateDocPageModal(this).open()
+                }
+                return true
             },
         })
 

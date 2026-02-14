@@ -1,45 +1,46 @@
-// CORE: core/lib/services/server/routes/providers/obsidian/blog/publish_blog_post_draft.rs
+// CORE: core/lib/services/server/routes/providers/obsidian/docs/publish_doc_page_draft.rs (TODO: implement)
 
 import { z } from "zod"
 
 import * as Api from "src/clients/api"
 import * as Errors from "src/clients/errors"
 import * as Site from "src/models/site"
-import * as Post from "src/models/post"
+import * as Doc from "src/models/doc"
 import * as Content from "src/models/content"
 import * as Image from "src/models/image"
 
-const PostData = z.object({
+const DocPageData = z.object({
     title: z.string(),
     description: z.string().nullable(),
     content: z.string(),
-    cover: Post.Cover.nullable(),
-    status: Post.PostStatus.nullable(),
-    slug: Post.PostSlug.nullable(),
+    status: Content.ContentStatus.nullable(),
+    slug: Doc.DocPageSlug.nullable(),
+    parentId: Doc.DocPageId.nullable(),
+    position: z.number(),
     postedOn: z.string().nullable(),
     links: z.array(Content.InternalLink),
     images: z.array(Image.PublishableImage),
 })
-type PostData = z.infer<typeof PostData>
+type DocPageData = z.infer<typeof DocPageData>
 
-const PublishablePostKind = z.union([
-    z.literal("NewPost"),
-    z.object({ TAG: z.literal("ExistingPost"), id: Post.PostId }),
+const PublishableDocPageKind = z.union([
+    z.literal("NewPage"),
+    z.object({ TAG: z.literal("ExistingPage"), id: Doc.DocPageId }),
 ])
-export type PublishablePostKind = z.infer<typeof PublishablePostKind>
+export type PublishableDocPageKind = z.infer<typeof PublishableDocPageKind>
 
-const PublishablePost = z.object({
+const PublishableDocPage = z.object({
     siteModuleId: Site.SiteModuleId,
-    postKind: PublishablePostKind,
-    postData: PostData,
+    pageKind: PublishableDocPageKind,
+    pageData: DocPageData,
 })
-export type PublishablePost = z.infer<typeof PublishablePost>
+export type PublishableDocPage = z.infer<typeof PublishableDocPage>
 
-export const PublishedPost = z.object({
-    id: Post.PostId,
+export const PublishedDocPage = z.object({
+    id: Doc.DocPageId,
     slug: Content.RenderedSlug,
 })
-export type PublishedPost = z.infer<typeof PublishedPost>
+export type PublishedDocPage = z.infer<typeof PublishedDocPage>
 
 const Error = z.union([
     z.literal("BadRequest"),
@@ -47,10 +48,13 @@ const Error = z.union([
         TAG: z.literal("InvalidInput"),
         error: z.union([
             z.literal("EmptyTitle"),
-            z.literal("EmptyContent"),
             z.object({
                 TAG: z.literal("InvalidSlug"),
                 error: z.union([z.literal("NonAscii"), z.literal("UnsafeChars")]),
+            }),
+            z.object({
+                TAG: z.literal("ParentNotFound"),
+                parentId: Doc.DocPageId,
             }),
             Errors.InvalidContentError,
         ]),
@@ -67,10 +71,10 @@ const Error = z.union([
 export type Error = z.infer<typeof Error>
 
 const parsers = {
-    success: PublishedPost,
+    success: PublishedDocPage,
     failure: Error,
 }
 
-export function send(siteId: Site.SiteId, post: PublishablePost) {
-    return Api.post(`/sites/${siteId}/blog/post/draft`, { body: post, parsers })
+export function send(siteId: Site.SiteId, page: PublishableDocPage) {
+    return Api.post(`/sites/${siteId}/docs/page/draft`, { body: page, parsers })
 }

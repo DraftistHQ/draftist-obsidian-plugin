@@ -11,18 +11,16 @@ import { Ok, Err, Result } from "src/utils/result"
 import { PostId } from "src/models/content"
 export { PostId }
 
-export type FrontMatterErrors = FrontMatterError[]
+export type FrontmatterErrors = FrontmatterError[]
 
-const FrontMatterErrorType = {
-    MISSING_POSTED_ON: "MISSING_POSTED_ON",
-    INVALID_POSTED_ON: "INVALID_POSTED_ON",
+const FrontmatterErrorType = {
+    INVALID_POSTED_ON: Content.INVALID_POSTED_ON,
     MISSING_COVER_LINK: "MISSING_COVER_LINK",
 } as const
 
-export type FrontMatterError =
-    | { _: typeof FrontMatterErrorType.MISSING_POSTED_ON }
-    | { _: typeof FrontMatterErrorType.INVALID_POSTED_ON }
-    | { _: typeof FrontMatterErrorType.MISSING_COVER_LINK }
+export type FrontmatterError =
+    | { _: typeof FrontmatterErrorType.INVALID_POSTED_ON }
+    | { _: typeof FrontmatterErrorType.MISSING_COVER_LINK }
 
 export const CoverCredit = z.object({
     text: z.string(),
@@ -37,20 +35,11 @@ export const Cover = z.discriminatedUnion("TAG", [
 export type Cover = z.infer<typeof Cover>
 
 export const PostStatusIdea = z.literal("Idea")
-export const PostStatusDraft = z.literal("Draft")
-export const PostStatusPublished = z.literal("Published")
-export const PostStatusArchived = z.literal("Archived")
 
-export const PostPrepublishedStatus = z.union([PostStatusIdea, PostStatusDraft])
+export const PostPrepublishedStatus = z.union([PostStatusIdea, Content.ContentStatusDraft])
 export type PostPrepublishedStatus = z.infer<typeof PostPrepublishedStatus>
 
-export const PostStatus = z.union([
-    PostStatusIdea,
-    PostStatusDraft,
-    PostStatusPublished,
-    PostStatusArchived,
-    // z.string(),
-])
+export const PostStatus = z.union([PostStatusIdea, Content.ContentStatus])
 export type PostStatus = z.infer<typeof PostStatus>
 
 export function getStatusFolderName(status: "Idea" | "Draft" | "Published" | "Archived"): string {
@@ -72,24 +61,10 @@ export function getStatusFolderName(status: "Idea" | "Draft" | "Published" | "Ar
 export const PostSlug = z.string().brand<"PostSlug">()
 export type PostSlug = z.infer<typeof PostSlug>
 
-export const PostedOn = z.string().refine(
-    value => {
-        const dateFormat = Obsidian.moment(value, "YYYY-MM-DD", true)
-        if (dateFormat.isValid()) return true
-
-        const dateTimeFormat = Obsidian.moment(value, "YYYY-MM-DDTHH:mm:ss", true)
-        return dateTimeFormat.isValid()
-    },
-    { message: FrontMatterErrorType.INVALID_POSTED_ON },
-)
-
-export const PublishedPostSlug = z.string().brand<"PublishedPostSlug">()
-export type PublishedPostSlug = z.infer<typeof PublishedPostSlug>
-
 export const PublishableFrontmatter = z.object({
     status: PostStatus.nullable().optional(),
     description: z.string().nullable().optional(),
-    "posted on": PostedOn,
+    "posted on": Content.PostedOn.optional(),
     cover: z.string().nullable().optional(),
     "cover credit text": z.string().nullable().optional(),
     "cover credit link": z.string().nullable().optional(),
@@ -98,7 +73,7 @@ export const PublishableFrontmatter = z.object({
     [FM.D42_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
     [FM.D42_CONTENT_ID]: PostId.nullable().optional(),
     [FM.D42_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_SLUG]: PublishedPostSlug.nullable().optional(),
+    [FM.D42_LAST_PUBLISHED_SLUG]: Content.RenderedSlug.nullable().optional(),
     [FM.D42_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
 })
 export type PublishableFrontmatter = z.infer<typeof PublishableFrontmatter>
@@ -139,7 +114,7 @@ export function validateFrontmatter(
     file: Obsidian.TFile,
     frontmatter: Obsidian.FrontMatterCache,
     links: Obsidian.FrontmatterLinkCache[] | undefined,
-): Result<PublishableFrontmatter, FrontMatterErrors> {
+): Result<PublishableFrontmatter, FrontmatterErrors> {
     let data = frontmatter as Frontmatter
 
     const result = PublishableFrontmatter.safeParse(data)
@@ -153,11 +128,9 @@ export function validateFrontmatter(
         }
         return Ok(result.data)
     } else {
-        let errors: FrontMatterErrors = result.error.issues.map(issue => {
+        let errors: FrontmatterErrors = result.error.issues.map(issue => {
             if (issue.path[0] == "posted on") {
-                if (issue.code === "invalid_type" && issue.received === "undefined") {
-                    return { _: "MISSING_POSTED_ON" }
-                } else if (issue.code === "custom" && issue.message === "INVALID_POSTED_ON") {
+                if (issue.code === "custom" && issue.message === "INVALID_POSTED_ON") {
                     return { _: issue.message }
                 } else {
                     throw result.error
