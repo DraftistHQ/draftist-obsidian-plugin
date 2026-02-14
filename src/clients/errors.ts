@@ -75,10 +75,15 @@ export const ContentParsingError = z.discriminatedUnion("TAG", [
                     }),
                     z.object({
                         TAG: z.literal("VideoError"),
-                        error: z.union([
-                            z.object({ TAG: z.literal("InvalidYouTubeUrl"), url: z.string() }),
-                            z.object({ TAG: z.literal("UnexpectedYouTubeUrl"), url: z.string() }),
-                            z.literal("YouTubeUrlContainsInvalidChars"),
+                        error: z.discriminatedUnion("TAG", [
+                            z.object({
+                                TAG: z.literal("UnexpectedExternalSource"),
+                                error: z.union([
+                                    z.object({ TAG: z.literal("InvalidYouTubeUrl"), url: z.string() }),
+                                    z.object({ TAG: z.literal("UnexpectedYouTubeUrl"), url: z.string() }),
+                                    z.literal("YouTubeUrlContainsInvalidChars"),
+                                ]),
+                            }),
                         ]),
                     }),
                     z.object({
@@ -103,10 +108,15 @@ export const ContentParsingError = z.discriminatedUnion("TAG", [
     }),
     z.object({
         TAG: z.literal("VideoConversionError"),
-        error: z.union([
-            z.object({ TAG: z.literal("InvalidYouTubeUrl"), url: z.string() }),
-            z.object({ TAG: z.literal("UnexpectedYouTubeUrl"), url: z.string() }),
-            z.literal("YouTubeUrlContainsInvalidChars"),
+        error: z.discriminatedUnion("TAG", [
+            z.object({
+                TAG: z.literal("UnexpectedExternalSource"),
+                error: z.union([
+                    z.object({ TAG: z.literal("InvalidYouTubeUrl"), url: z.string() }),
+                    z.object({ TAG: z.literal("UnexpectedYouTubeUrl"), url: z.string() }),
+                    z.literal("YouTubeUrlContainsInvalidChars"),
+                ]),
+            }),
         ]),
     }),
     z.object({
