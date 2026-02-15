@@ -48,6 +48,8 @@ export class PublishingModal extends Obsidian.Modal {
     }
 }
 
+// --- Types
+
 type Props = {
     app: Obsidian.App
     plugin: Plugin
@@ -55,180 +57,92 @@ type Props = {
     modal: PublishingModal
 }
 
+type PrePublishingOptions = { skipChangesCheck: boolean }
+
+type PreparedEntry =
+    | { kind: "blog"; data: PostPublishing.PrePublishingData }
+    | { kind: "docs"; data: DocPublishing.PrePublishingData }
+
+type PublishedEntry =
+    | { kind: "blog"; post: PublishPostRequest.PublishedPost }
+    | { kind: "docs"; page: PublishDocRequest.PublishedDocPage; hasContent: boolean }
+
+export type PublishingError =
+    | PostPublishing.PrePublishingError
+    | DocPublishing.PrePublishingError
+    | Api.ResponseError<PublishPostRequest.Error>
+    | Api.ResponseError<PublishDocRequest.Error>
+    | { _: "UNEXPECTED_ERROR" }
+
+type Progress =
+    | { phase: "validating" }
+    | { phase: "uploading"; uploaded: number; total: number }
+    | { phase: "publishing" }
+
+// --- State Machine
+
 export type State =
+    | { status: "READY" }
     | {
-          status: "READY"
-      }
-    | {
-          status: "PREPARING_BLOG_POST_PUBLISHING"
+          status: "PREPARING"
           site: Config.SiteSettings
           module: Site.SiteModule
-          options: PostPublishing.PrePublishingOptions
+          options: PrePublishingOptions
       }
     | {
-          status: "PUBLISHING_BLOG_POST"
+          status: "PUBLISHING"
           site: Config.SiteSettings
           module: Site.SiteModule
-          data: PostPublishing.PrePublishingData
+          entry: PreparedEntry
       }
     | {
-          status: "BLOG_POST_PUBLISHING_SUCCESS"
+          status: "SUCCESS"
           site: Config.SiteSettings
           module: Site.SiteModule
-          post: PublishPostRequest.PublishedPost
-      }
-    | {
-          status: "BLOG_POST_PUBLISHING_FAILURE"
-          site: Config.SiteSettings
-          module: Site.SiteModule
-          error: BlogPostPublishingError
-      }
-    | {
-          status: "PREPARING_DOC_PAGE_PUBLISHING"
-          site: Config.SiteSettings
-          module: Site.SiteModule
-          options: DocPublishing.PrePublishingOptions
-      }
-    | {
-          status: "PUBLISHING_DOC_PAGE"
-          site: Config.SiteSettings
-          module: Site.SiteModule
-          data: DocPublishing.PrePublishingData
-      }
-    | {
-          status: "DOC_PAGE_PUBLISHING_SUCCESS"
-          site: Config.SiteSettings
-          module: Site.SiteModule
-          page: PublishDocRequest.PublishedDocPage
-          hasContent: boolean
-      }
-    | {
-          status: "DOC_PAGE_PUBLISHING_FAILURE"
-          site: Config.SiteSettings
-          module: Site.SiteModule
-          error: DocPagePublishingError
+          published: PublishedEntry
       }
     | {
           status: "PUBLISHING_FAILURE"
+          site: Config.SiteSettings
+          module: Site.SiteModule
+          error: PublishingError
+      }
+    | {
+          status: "INITIALIZATION_FAILURE"
           error: Site.GetSiteForFileError
       }
 
 type Action =
     | {
-          type: "START_PREPARING_BLOG_POST_PUBLISHING"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              options: PostPublishing.PrePublishingOptions
-          }
+          type: "START_PREPARING"
+          payload: { site: Config.SiteSettings; module: Site.SiteModule; options: PrePublishingOptions }
       }
     | {
-          type: "START_PUBLISHING_BLOG_POST"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              data: PostPublishing.PrePublishingData
-          }
+          type: "START_PUBLISHING"
+          payload: { site: Config.SiteSettings; module: Site.SiteModule; entry: PreparedEntry }
       }
     | {
-          type: "SUCCEED_PUBLISHING_BLOG_POST"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              post: PublishPostRequest.PublishedPost
-          }
-      }
-    | {
-          type: "FAIL_PUBLISHING_BLOG_POST"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              error: BlogPostPublishingError
-          }
-      }
-    | {
-          type: "START_PREPARING_DOC_PAGE_PUBLISHING"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              options: DocPublishing.PrePublishingOptions
-          }
-      }
-    | {
-          type: "START_PUBLISHING_DOC_PAGE"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              data: DocPublishing.PrePublishingData
-          }
-      }
-    | {
-          type: "SUCCEED_PUBLISHING_DOC_PAGE"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              page: PublishDocRequest.PublishedDocPage
-              hasContent: boolean
-          }
-      }
-    | {
-          type: "FAIL_PUBLISHING_DOC_PAGE"
-          payload: {
-              site: Config.SiteSettings
-              module: Site.SiteModule
-              error: DocPagePublishingError
-          }
+          type: "SUCCEED_PUBLISHING"
+          payload: { site: Config.SiteSettings; module: Site.SiteModule; published: PublishedEntry }
       }
     | {
           type: "FAIL_PUBLISHING"
-          payload: {
-              error: Site.GetSiteForFileError
-          }
+          payload: { site: Config.SiteSettings; module: Site.SiteModule; error: PublishingError }
       }
-
-export type UnexpectedError = { _: "UNEXPECTED_ERROR" }
-
-export type BlogPostPublishingError =
-    | PostPublishing.PrePublishingError
-    | Api.ResponseError<PublishPostRequest.Error>
-    | UnexpectedError
-
-export type DocPagePublishingError =
-    | DocPublishing.PrePublishingError
-    | Api.ResponseError<PublishDocRequest.Error>
-    | UnexpectedError
-
-export type PublishingError = BlogPostPublishingError | DocPagePublishingError
+    | { type: "FAIL_INITIALIZATION"; payload: { error: Site.GetSiteForFileError } }
 
 function reducer(state: State, action: Action): State {
     switch (action.type) {
-        case "START_PREPARING_BLOG_POST_PUBLISHING": {
-            return { status: "PREPARING_BLOG_POST_PUBLISHING", ...action.payload }
-        }
-        case "START_PUBLISHING_BLOG_POST": {
-            return { status: "PUBLISHING_BLOG_POST", ...action.payload }
-        }
-        case "SUCCEED_PUBLISHING_BLOG_POST": {
-            return { status: "BLOG_POST_PUBLISHING_SUCCESS", ...action.payload }
-        }
-        case "FAIL_PUBLISHING_BLOG_POST": {
-            return { status: "BLOG_POST_PUBLISHING_FAILURE", ...action.payload }
-        }
-        case "START_PREPARING_DOC_PAGE_PUBLISHING": {
-            return { status: "PREPARING_DOC_PAGE_PUBLISHING", ...action.payload }
-        }
-        case "START_PUBLISHING_DOC_PAGE": {
-            return { status: "PUBLISHING_DOC_PAGE", ...action.payload }
-        }
-        case "SUCCEED_PUBLISHING_DOC_PAGE": {
-            return { status: "DOC_PAGE_PUBLISHING_SUCCESS", ...action.payload }
-        }
-        case "FAIL_PUBLISHING_DOC_PAGE": {
-            return { status: "DOC_PAGE_PUBLISHING_FAILURE", ...action.payload }
-        }
-        case "FAIL_PUBLISHING": {
+        case "START_PREPARING":
+            return { status: "PREPARING", ...action.payload }
+        case "START_PUBLISHING":
+            return { status: "PUBLISHING", ...action.payload }
+        case "SUCCEED_PUBLISHING":
+            return { status: "SUCCESS", ...action.payload }
+        case "FAIL_PUBLISHING":
             return { status: "PUBLISHING_FAILURE", ...action.payload }
-        }
+        case "FAIL_INITIALIZATION":
+            return { status: "INITIALIZATION_FAILURE", ...action.payload }
         default: {
             action satisfies never
             return state
@@ -238,10 +152,27 @@ function reducer(state: State, action: Action): State {
 
 const initialState: State = { status: "READY" }
 
-// TODO: Show progress bar during assets uploading
-// TODO: There's a massive duplication in this component. Abstract it during the progress bar implementation.
+// --- Helpers
+
+function openPreviewOrShowNoticeWithLink(url: string, text: string) {
+    if (Obsidian.Platform.isMobile) {
+        Notice.info(
+            createFragment(fragment => {
+                fragment.createEl("a", { href: url, text })
+            }),
+            { permanent: true },
+        )
+    } else {
+        window.open(url)
+    }
+}
+
+// --- Modal
+
 const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
     const [state, dispatch] = React.useReducer(reducer, initialState)
+    const [progress, setProgress] = React.useState<Progress | null>(null)
+    const guardRef = React.useRef<"preparing" | "publishing" | null>(null)
 
     React.useEffect(() => {
         switch (state.status) {
@@ -250,247 +181,214 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                 switch (result._) {
                     case OK: {
                         let { site, module } = result.data
-
-                        switch (module.kind) {
-                            case "blog": {
-                                return dispatch({
-                                    type: "START_PREPARING_BLOG_POST_PUBLISHING",
-                                    payload: {
-                                        site,
-                                        module,
-                                        options: { skipChangesCheck: false },
-                                    },
-                                })
-                            }
-                            case "docs": {
-                                return dispatch({
-                                    type: "START_PREPARING_DOC_PAGE_PUBLISHING",
-                                    payload: {
-                                        site,
-                                        module,
-                                        options: { skipChangesCheck: false },
-                                    },
-                                })
-                            }
-                            default: {
-                                module.kind satisfies never
-                                return
-                            }
-                        }
+                        dispatch({
+                            type: "START_PREPARING",
+                            payload: { site, module, options: { skipChangesCheck: false } },
+                        })
+                        return
                     }
                     case ERROR: {
-                        dispatch({
-                            type: "FAIL_PUBLISHING",
-                            payload: { error: result.error },
-                        })
+                        dispatch({ type: "FAIL_INITIALIZATION", payload: { error: result.error } })
                         return
                     }
                 }
             }
 
-            case "PREPARING_BLOG_POST_PUBLISHING": {
-                PostPublishing.prepareForPublishing(file, app, state.options)
-                    .then(result => {
-                        switch (result._) {
-                            case OK:
-                                return dispatch({
-                                    type: "START_PUBLISHING_BLOG_POST",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        data: result.data,
-                                    },
-                                })
-                            case ERROR:
-                                return dispatch({
-                                    type: "FAIL_PUBLISHING_BLOG_POST",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        error: result.error,
-                                    },
-                                })
-                            default:
-                                result satisfies never
-                        }
-                    })
-                    .catch(error => {
-                        log.error("Unexpected error during data preparation for publishing", error)
-                        dispatch({
-                            type: "FAIL_PUBLISHING_BLOG_POST",
-                            payload: {
-                                site: state.site,
-                                module: state.module,
-                                error: { _: "UNEXPECTED_ERROR" },
-                            },
-                        })
-                    })
-                break
-            }
+            case "PREPARING": {
+                if (guardRef.current === "preparing") break
+                guardRef.current = "preparing"
 
-            case "PUBLISHING_BLOG_POST": {
-                PostPublishing.publish(state.data.site.config.id, state.data.post, file, app)
-                    .then(result => {
-                        switch (result._) {
-                            case OK:
-                                return dispatch({
-                                    type: "SUCCEED_PUBLISHING_BLOG_POST",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        post: result.data,
-                                    },
-                                })
-                            case ERROR:
-                                return dispatch({
-                                    type: "FAIL_PUBLISHING_BLOG_POST",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        error: result.error,
-                                    },
-                                })
-                            default:
-                                result satisfies never
-                        }
-                    })
-                    .catch(error => {
-                        log.error("Unexpected error during publishing", error)
-                        dispatch({
-                            type: "FAIL_PUBLISHING_BLOG_POST",
-                            payload: {
-                                site: state.site,
-                                module: state.module,
-                                error: { _: "UNEXPECTED_ERROR" },
-                            },
-                        })
-                    })
-                break
-            }
+                setProgress({ phase: "validating" })
 
-            case "BLOG_POST_PUBLISHING_SUCCESS": {
-                let url = `https://${state.site.config.addresses.draft}/${state.module.slug}/${state.post.slug}`
-                if (Obsidian.Platform.isMobile) {
-                    // Browser window won't open on mobile
-                    Notice.info(
-                        createFragment(fragment => {
-                            fragment.createEl("a", { href: url, text: "Preview and publish post ↗" })
-                        }),
-                        { permanent: true },
-                    )
-                } else {
-                    window.open(url)
+                const onAssetProcessed = (uploaded: number, total: number) => {
+                    setProgress({ phase: "uploading", uploaded, total })
                 }
-                plugin.pendingSyncsManager.registerPendingSync(file) // Register pending sync so status can be synced when user returns to the file
-                modal.close()
-                return
-            }
 
-            case "BLOG_POST_PUBLISHING_FAILURE":
-                return
+                const prepareAndDispatch = async () => {
+                    let entry: PreparedEntry
 
-            case "PREPARING_DOC_PAGE_PUBLISHING": {
-                DocPublishing.prepareForPublishing(file, app, state.options)
-                    .then(result => {
-                        switch (result._) {
-                            case OK:
-                                return dispatch({
-                                    type: "START_PUBLISHING_DOC_PAGE",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        data: result.data,
-                                    },
-                                })
-                            case ERROR:
-                                return dispatch({
-                                    type: "FAIL_PUBLISHING_DOC_PAGE",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        error: result.error,
-                                    },
-                                })
-                            default:
-                                result satisfies never
+                    switch (state.module.kind) {
+                        case "blog": {
+                            let result = await PostPublishing.prepareForPublishing(
+                                file,
+                                app,
+                                state.options,
+                                onAssetProcessed,
+                            )
+                            switch (result._) {
+                                case OK:
+                                    entry = { kind: "blog", data: result.data }
+                                    break
+                                case ERROR:
+                                    log.error("Pre-publishing failed", result.error)
+                                    guardRef.current = null
+                                    dispatch({
+                                        type: "FAIL_PUBLISHING",
+                                        payload: { site: state.site, module: state.module, error: result.error },
+                                    })
+                                    return
+                                default:
+                                    result satisfies never
+                                    return
+                            }
+                            break
                         }
-                    })
-                    .catch(error => {
-                        log.error("Unexpected error during data preparation for doc page publishing", error)
-                        dispatch({
-                            type: "FAIL_PUBLISHING_DOC_PAGE",
-                            payload: {
-                                site: state.site,
-                                module: state.module,
-                                error: { _: "UNEXPECTED_ERROR" },
-                            },
-                        })
-                    })
-                break
-            }
-
-            case "PUBLISHING_DOC_PAGE": {
-                DocPublishing.publish(state.data.site.config.id, state.data.page, file, app)
-                    .then(result => {
-                        switch (result._) {
-                            case OK:
-                                return dispatch({
-                                    type: "SUCCEED_PUBLISHING_DOC_PAGE",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        page: result.data,
-                                        hasContent: state.data.page.pageData.content.trim().length > 0,
-                                    },
-                                })
-                            case ERROR:
-                                return dispatch({
-                                    type: "FAIL_PUBLISHING_DOC_PAGE",
-                                    payload: {
-                                        site: state.site,
-                                        module: state.module,
-                                        error: result.error,
-                                    },
-                                })
-                            default:
-                                result satisfies never
+                        case "docs": {
+                            let result = await DocPublishing.prepareForPublishing(
+                                file,
+                                app,
+                                state.options,
+                                onAssetProcessed,
+                            )
+                            switch (result._) {
+                                case OK:
+                                    entry = { kind: "docs", data: result.data }
+                                    break
+                                case ERROR:
+                                    log.error("Pre-publishing failed", result.error)
+                                    guardRef.current = null
+                                    dispatch({
+                                        type: "FAIL_PUBLISHING",
+                                        payload: { site: state.site, module: state.module, error: result.error },
+                                    })
+                                    return
+                                default:
+                                    result satisfies never
+                                    return
+                            }
+                            break
                         }
-                    })
-                    .catch(error => {
-                        log.error("Unexpected error during doc page publishing", error)
-                        dispatch({
-                            type: "FAIL_PUBLISHING_DOC_PAGE",
-                            payload: {
-                                site: state.site,
-                                module: state.module,
-                                error: { _: "UNEXPECTED_ERROR" },
-                            },
-                        })
-                    })
-                break
-            }
-
-            case "DOC_PAGE_PUBLISHING_SUCCESS": {
-                if (state.hasContent) {
-                    let url = `https://${state.site.config.addresses.draft}/${state.module.slug}/${state.page.slug}`
-                    if (Obsidian.Platform.isMobile) {
-                        Notice.info(
-                            createFragment(fragment => {
-                                fragment.createEl("a", { href: url, text: "Preview and publish doc page ↗" })
-                            }),
-                            { permanent: true },
-                        )
-                    } else {
-                        window.open(url)
+                        default: {
+                            state.module.kind satisfies never
+                            return
+                        }
                     }
-                    plugin.pendingSyncsManager.registerPendingSync(file)
-                    modal.close()
+
+                    setProgress({ phase: "publishing" })
+                    dispatch({ type: "START_PUBLISHING", payload: { site: state.site, module: state.module, entry } })
+                }
+
+                prepareAndDispatch().catch(error => {
+                    log.error("Unexpected error during preparation", error)
+                    guardRef.current = null
+                    dispatch({
+                        type: "FAIL_PUBLISHING",
+                        payload: { site: state.site, module: state.module, error: { _: "UNEXPECTED_ERROR" } },
+                    })
+                })
+                break
+            }
+
+            case "PUBLISHING": {
+                if (guardRef.current === "publishing") break
+                guardRef.current = "publishing"
+
+                const publishAndDispatch = async () => {
+                    switch (state.entry.kind) {
+                        case "blog": {
+                            let result = await PostPublishing.publish(
+                                state.site.config.id,
+                                state.entry.data.post,
+                                file,
+                                app,
+                            )
+                            switch (result._) {
+                                case OK:
+                                    dispatch({
+                                        type: "SUCCEED_PUBLISHING",
+                                        payload: {
+                                            site: state.site,
+                                            module: state.module,
+                                            published: { kind: "blog", post: result.data },
+                                        },
+                                    })
+                                    break
+                                case ERROR:
+                                    dispatch({
+                                        type: "FAIL_PUBLISHING",
+                                        payload: { site: state.site, module: state.module, error: result.error },
+                                    })
+                                    break
+                                default:
+                                    result satisfies never
+                            }
+                            break
+                        }
+                        case "docs": {
+                            let result = await DocPublishing.publish(
+                                state.site.config.id,
+                                state.entry.data.page,
+                                file,
+                                app,
+                            )
+                            switch (result._) {
+                                case OK:
+                                    dispatch({
+                                        type: "SUCCEED_PUBLISHING",
+                                        payload: {
+                                            site: state.site,
+                                            module: state.module,
+                                            published: {
+                                                kind: "docs",
+                                                page: result.data,
+                                                hasContent: state.entry.data.page.pageData.content.trim().length > 0,
+                                            },
+                                        },
+                                    })
+                                    break
+                                case ERROR:
+                                    dispatch({
+                                        type: "FAIL_PUBLISHING",
+                                        payload: { site: state.site, module: state.module, error: result.error },
+                                    })
+                                    break
+                                default:
+                                    result satisfies never
+                            }
+                            break
+                        }
+                        default:
+                            state.entry satisfies never
+                    }
+                }
+
+                publishAndDispatch().catch(error => {
+                    log.error("Unexpected error during publishing", error)
+                    guardRef.current = null
+                    dispatch({
+                        type: "FAIL_PUBLISHING",
+                        payload: { site: state.site, module: state.module, error: { _: "UNEXPECTED_ERROR" } },
+                    })
+                })
+                break
+            }
+
+            case "SUCCESS": {
+                switch (state.published.kind) {
+                    case "blog": {
+                        let url = `https://${state.site.config.addresses.draft}/${state.module.slug}/${state.published.post.slug}`
+                        openPreviewOrShowNoticeWithLink(url, "Preview and publish blog post ↗")
+                        plugin.pendingSyncsManager.registerPendingSync(file)
+                        modal.close()
+                        break
+                    }
+                    case "docs": {
+                        if (state.published.hasContent) {
+                            let url = `https://${state.site.config.addresses.draft}/${state.module.slug}/${state.published.page.slug}`
+                            openPreviewOrShowNoticeWithLink(url, "Preview and publish doc page ↗")
+                            plugin.pendingSyncsManager.registerPendingSync(file)
+                            modal.close()
+                        }
+                        break
+                    }
+                    default:
+                        state.published satisfies never
                 }
                 return
             }
 
-            case "DOC_PAGE_PUBLISHING_FAILURE":
             case "PUBLISHING_FAILURE":
+            case "INITIALIZATION_FAILURE":
                 return
 
             default:
@@ -502,39 +400,77 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
         <div className="d42-modal-container">
             {(() => {
                 switch (state.status) {
-                    case "READY": {
+                    case "READY":
                         return null
-                    }
-                    case "PREPARING_BLOG_POST_PUBLISHING":
-                    case "PUBLISHING_BLOG_POST": {
+
+                    case "PREPARING":
+                    case "PUBLISHING": {
                         return (
                             <div className="d42-modal-processing-container">
                                 <div style={{ height: "32px" }} />
-                                <div className="d42-spinner" />
-                                <p>Publishing...</p>
+                                <ProgressBar progress={progress} />
                             </div>
                         )
                     }
-                    case "BLOG_POST_PUBLISHING_SUCCESS": {
-                        return null
+
+                    case "SUCCESS": {
+                        switch (state.published.kind) {
+                            case "blog":
+                                return null
+                            case "docs": {
+                                if (!state.published.hasContent) {
+                                    return (
+                                        <div className="d42-alert-container d42-alert-container-info">
+                                            <h1>Publishing Doc Page</h1>
+                                            <div className="d42-alert-message d42-alert-message-info">
+                                                Doc group updated successfully.
+                                            </div>
+                                            <div className="d42-alert-buttons">
+                                                <button
+                                                    className="d42-button d42-button-secondary"
+                                                    onClick={_ => modal.close()}
+                                                >
+                                                    Close
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                                return null
+                            }
+                            default:
+                                state.published satisfies never
+                                return null
+                        }
                     }
-                    case "BLOG_POST_PUBLISHING_FAILURE": {
+
+                    case "PUBLISHING_FAILURE": {
+                        let contentLabel: string
+                        switch (state.module.kind) {
+                            case "blog":
+                                contentLabel = "Blog Post"
+                                break
+                            case "docs":
+                                contentLabel = "Doc Page"
+                                break
+                            default:
+                                state.module.kind satisfies never
+                                throw new Error("unreachable")
+                        }
                         let kind!: "info" | "warning" | "danger"
-                        let messages = []
-                        let button: "publish-without-changes-check" | null = null
+                        let messages: string[] = []
+                        let retryWithoutCheck = false
 
                         let failure = state.error
 
-                        // TODO: Revisit error messages and overall design of this section
                         switch (failure._) {
                             case "NO_CHANGES_SINCE_LAST_PUBLISH": {
                                 kind = "info"
                                 messages.push("It doesn't seem like you have made any changes since your last publish.")
-                                button = "publish-without-changes-check"
+                                retryWithoutCheck = true
                                 break
                             }
                             case "FAILED_TO_GET_SITE_AND_MODULE": {
-                                // TODO: Provide a link to documentation. Structure it better.
                                 kind = "danger"
                                 switch (failure.error._) {
                                     case "ENABLED_SITE_MISSING_PATH": {
@@ -575,7 +511,6 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                             case "INVALID_SETTINGS": {
                                 kind = "danger"
                                 failure.errors.forEach(error => {
-                                    // TODO: Provide a link to documentation
                                     switch (error._) {
                                         case "MISSING_TOKEN": {
                                             messages.push(
@@ -614,17 +549,16 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                 break
                             }
                             case "MISSING_FRONTMATTER": {
-                                // TODO: We should offer to add base frontmatter here
                                 kind = "danger"
                                 messages.push(
                                     "The file you are trying to publish doesn't have a frontmatter. Add it and try again.",
                                 )
                                 break
                             }
-                            case "INVALID_FRONTMATTER": {
+                            case "INVALID_POST_FRONTMATTER": {
                                 kind = "danger"
-                                failure.errors.forEach(frontmatterError => {
-                                    switch (frontmatterError._) {
+                                failure.errors.forEach(error => {
+                                    switch (error._) {
                                         case "INVALID_POSTED_ON":
                                             messages.push("`Posted On` field is not a valid date.")
                                             break
@@ -634,33 +568,23 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                             )
                                             break
                                         default:
-                                            frontmatterError satisfies never
+                                            error satisfies never
                                     }
                                 })
                                 break
                             }
-                            case "MISSING_API_TOKEN": {
+                            case "INVALID_DOC_FRONTMATTER": {
                                 kind = "danger"
-                                messages.push("You didn't set API token. Set it in the Settings and try again.")
-                                break
-                            }
-                            case "API_AUTH_ERROR": {
-                                kind = "danger"
-                                messages.push(
-                                    "Looks like your API token is expired or has been revoked. Update it in the Settings and try again.",
-                                )
-                                break
-                            }
-                            case "CLIENT_OUTDATED": {
-                                kind = "danger"
-                                messages.push("Please update Draft42 plugin to the latest version.")
-                                break
-                            }
-                            case "API_USER_ERROR": {
-                                kind = "danger"
-                                // FIXME: Render proper error messages
-                                messages.push("Server responded with an error:")
-                                messages.push(JSON.stringify(failure.error, null, 4))
+                                failure.errors.forEach(error => {
+                                    switch (error._) {
+                                        case "INVALID_POSTED_ON":
+                                            messages.push("`Posted On` field is not a valid date.")
+                                            break
+                                        // TS doesn't narrow single-member types in switch defaults
+                                        // default:
+                                        //     error satisfies never
+                                    }
+                                })
                                 break
                             }
                             case "LINKED_RESOURCE_NOT_FOUND": {
@@ -676,7 +600,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                             case "LOCAL_LINK_DOESNT_HAVE_BLOCK_ID": {
                                 kind = "danger"
                                 messages.push(
-                                    `This post contains a link to itself. Link text: ${failure.link.displayText || failure.link.original}`,
+                                    `This entry contains a link to itself. Link text: ${failure.link.displayText || failure.link.original}`,
                                 )
                                 break
                             }
@@ -781,7 +705,6 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                 })
                                 break
                             }
-
                             case "INVALID_EXTERNAL_COVER_IMAGE_URL": {
                                 kind = "danger"
                                 messages.push(
@@ -789,7 +712,6 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                 )
                                 break
                             }
-
                             case "INVALID_EXTERNAL_COVER_CREDIT_LINK": {
                                 kind = "danger"
                                 messages.push(
@@ -797,112 +719,11 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                 )
                                 break
                             }
-
-                            case "MAINTENANCE": {
-                                kind = "warning"
-                                messages.push(`Service is under maintenance. Please try again later.`)
-                                break
-                            }
-
-                            case "FAILED_TO_READ_ASSETS_METADATA":
-                            case "API_SERVER_ERROR":
-                            case "API_UNEXPECTED_ERROR":
-                            case "INTERNAL_ERROR":
-                            case "UNEXPECTED_ERROR": {
-                                // TODO: Include debug data to copy
-                                // TODO: How to reach out to support?
+                            case "MISSING_POSITION": {
                                 kind = "danger"
-                                messages.push("Something unexpected happened. Reach out to support.")
-                                break
-                            }
-                            default:
-                                failure satisfies never
-                        }
-
-                        return (
-                            <div className={`d42-alert-container d42-alert-container-${kind}`}>
-                                <h1>Publishing Post</h1>
-                                {messages.map((message, idx) => (
-                                    <div key={idx} className={`d42-alert-message d42-alert-message-${kind}`}>
-                                        {message}
-                                    </div>
-                                ))}
-                                <div className="d42-alert-buttons">
-                                    <button className="d42-button d42-button-secondary" onClick={_ => modal.close()}>
-                                        Close
-                                    </button>
-                                    {(() => {
-                                        switch (button) {
-                                            case "publish-without-changes-check":
-                                                return (
-                                                    <button
-                                                        className="d42-button d42-button-primary"
-                                                        onClick={_ =>
-                                                            dispatch({
-                                                                type: "START_PREPARING_BLOG_POST_PUBLISHING",
-                                                                payload: {
-                                                                    site: state.site,
-                                                                    module: state.module,
-                                                                    options: { skipChangesCheck: true },
-                                                                },
-                                                            })
-                                                        }
-                                                    >
-                                                        Publish Anyway
-                                                    </button>
-                                                )
-                                            case null:
-                                                return null
-                                            default: {
-                                                button satisfies never
-                                                return null
-                                            }
-                                        }
-                                    })()}
-                                </div>
-                            </div>
-                        )
-                    }
-                    case "PREPARING_DOC_PAGE_PUBLISHING":
-                    case "PUBLISHING_DOC_PAGE": {
-                        return (
-                            <div className="d42-modal-processing-container">
-                                <div style={{ height: "32px" }} />
-                                <div className="d42-spinner" />
-                                <p>Publishing...</p>
-                            </div>
-                        )
-                    }
-                    case "DOC_PAGE_PUBLISHING_SUCCESS": {
-                        if (state.hasContent) {
-                            return null
-                        }
-                        return (
-                            <div className="d42-alert-container d42-alert-container-info">
-                                <h1>Publishing Doc Page</h1>
-                                <div className="d42-alert-message d42-alert-message-info">
-                                    Doc group updated successfully.
-                                </div>
-                                <div className="d42-alert-buttons">
-                                    <button className="d42-button d42-button-secondary" onClick={_ => modal.close()}>
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-                        )
-                    }
-                    case "DOC_PAGE_PUBLISHING_FAILURE": {
-                        let kind: "info" | "warning" | "danger" = "danger"
-                        let messages: string[] = []
-                        let button: "publish-without-changes-check" | null = null
-
-                        let failure = state.error
-
-                        switch (failure._) {
-                            case "NO_CHANGES_SINCE_LAST_PUBLISH": {
-                                kind = "info"
-                                messages.push("It doesn't seem like you have made any changes since your last publish.")
-                                button = "publish-without-changes-check"
+                                messages.push(
+                                    "Unable to determine page position. The module hierarchy is in invalid state.",
+                                )
                                 break
                             }
                             case "PARENT_FOLDER_NOT_FOUND":
@@ -916,59 +737,21 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                 messages.push(`Parent page must be published first: ${failure.folderPath}`)
                                 break
                             }
-                            case "MISSING_FRONTMATTER": {
+                            case "MISSING_API_TOKEN": {
                                 kind = "danger"
-                                messages.push("Note is missing frontmatter. Add frontmatter with required fields.")
+                                messages.push("You didn't set API token. Set it in the Settings and try again.")
                                 break
                             }
-                            case "INVALID_FRONTMATTER": {
-                                kind = "danger"
-                                failure.errors.forEach(frontmatterError => {
-                                    switch (frontmatterError._) {
-                                        case "INVALID_POSTED_ON":
-                                            messages.push("`Posted On` field is not a valid date.")
-                                            break
-                                        // TS doesn't narrow single-member types in switch defaults
-                                        // default:
-                                        //     frontmatterError satisfies never
-                                    }
-                                })
-                                break
-                            }
-                            case "MISSING_POSITION": {
-                                kind = "danger"
-                                messages.push(
-                                    "Unable to determine page position. The module hierarchy is in invalid state.",
-                                ) // TODO: Suggest how to fix
-                                break
-                            }
-                            case "FAILED_TO_GET_SITE_AND_MODULE":
-                            case "INVALID_SETTINGS":
-                            case "LINKED_RESOURCE_NOT_FOUND":
-                            case "LINKED_RESOURCE_IS_DIRECTORY":
-                            case "LOCAL_LINK_DOESNT_HAVE_BLOCK_ID":
-                            case "LINKED_RESOURCE_DOESNT_HAVE_METADATA":
-                            case "LINKED_RESOURCE_IS_NOT_PUBLISHED":
-                            case "IMAGES_VALIDATION_FAILED":
-                            case "IMAGES_UPLOADING_FAILED": {
-                                kind = "danger"
-                                messages.push("An error occurred. Please check your configuration and try again.")
-                                break
-                            }
-                            case "MISSING_API_TOKEN":
                             case "API_AUTH_ERROR": {
                                 kind = "danger"
-                                messages.push("Authentication error. Check your API token in settings.")
+                                messages.push(
+                                    "Looks like your API token is expired or has been revoked. Update it in the Settings and try again.",
+                                )
                                 break
                             }
                             case "CLIENT_OUTDATED": {
                                 kind = "danger"
                                 messages.push("Please update Draft42 plugin to the latest version.")
-                                break
-                            }
-                            case "MAINTENANCE": {
-                                kind = "warning"
-                                messages.push("Service is under maintenance. Please try again later.")
                                 break
                             }
                             case "API_USER_ERROR": {
@@ -977,8 +760,13 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                 messages.push(JSON.stringify(failure.error, null, 4))
                                 break
                             }
-                            case "API_SERVER_ERROR":
+                            case "MAINTENANCE": {
+                                kind = "warning"
+                                messages.push(`Service is under maintenance. Please try again later.`)
+                                break
+                            }
                             case "FAILED_TO_READ_ASSETS_METADATA":
+                            case "API_SERVER_ERROR":
                             case "API_UNEXPECTED_ERROR":
                             case "INTERNAL_ERROR":
                             case "UNEXPECTED_ERROR": {
@@ -992,7 +780,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
 
                         return (
                             <div className={`d42-alert-container d42-alert-container-${kind}`}>
-                                <h1>Publishing Doc Page</h1>
+                                <h1>Publishing {contentLabel}</h1>
                                 {messages.map((message, idx) => (
                                     <div key={idx} className={`d42-alert-message d42-alert-message-${kind}`}>
                                         {message}
@@ -1002,42 +790,42 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                     <button className="d42-button d42-button-secondary" onClick={_ => modal.close()}>
                                         Close
                                     </button>
-                                    {(() => {
-                                        switch (button) {
-                                            case "publish-without-changes-check":
-                                                return (
-                                                    <button
-                                                        className="d42-button d42-button-primary"
-                                                        onClick={_ =>
-                                                            dispatch({
-                                                                type: "START_PREPARING_DOC_PAGE_PUBLISHING",
-                                                                payload: {
-                                                                    site: state.site,
-                                                                    module: state.module,
-                                                                    options: { skipChangesCheck: true },
-                                                                },
-                                                            })
-                                                        }
-                                                    >
-                                                        Publish Anyway
-                                                    </button>
-                                                )
-                                            case null:
-                                                return null
-                                            default: {
-                                                button satisfies never
-                                                return null
-                                            }
-                                        }
-                                    })()}
+                                    {retryWithoutCheck && (
+                                        <button
+                                            className="d42-button d42-button-primary"
+                                            onClick={_ => {
+                                                guardRef.current = null
+                                                dispatch({
+                                                    type: "START_PREPARING",
+                                                    payload: {
+                                                        site: state.site,
+                                                        module: state.module,
+                                                        options: { skipChangesCheck: true },
+                                                    },
+                                                })
+                                            }}
+                                        >
+                                            Publish Anyway
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )
                     }
-                    case "PUBLISHING_FAILURE": {
+
+                    case "INITIALIZATION_FAILURE": {
                         let message
 
                         switch (state.error._) {
+                            case "ENABLED_SITE_MISSING_PATH": {
+                                message =
+                                    "There's a configuration issue. Some of the sites are missing path. Please, make sure your sites are properly configured and try again."
+                                break
+                            }
+                            case "OVERLAPPING_PATHS": {
+                                message = `There's a configuration issue. Some of the sites have overlapping paths: ${state.error.site1.label} (${state.error.site1.path}) & ${state.error.site2.label} (${state.error.site2.path}). Please, make sure your sites are properly configured and try again.`
+                                break
+                            }
                             case "SITE_NOT_FOUND":
                             case "MODULE_NOT_FOUND": {
                                 message = "Failed to find a target site. Make sure your configuration is correct."
@@ -1045,7 +833,10 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                             }
                             case "SITE_DISABLED": {
                                 message = `Site ${state.error.site} is disabled. Please enable the site in the settings and try again.`
+                                break
                             }
+                            default:
+                                state.error satisfies never
                         }
 
                         return (
@@ -1060,12 +851,53 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                             </div>
                         )
                     }
+
                     default: {
                         state satisfies never
                         return null
                     }
                 }
             })()}
+        </div>
+    )
+}
+
+// --- Progress Bar
+
+function ProgressBar({ progress }: { progress: Progress | null }) {
+    if (!progress) return null
+
+    let label: string
+    let fillClass = "d42-progress-bar-fill"
+    let fillStyle: React.CSSProperties
+
+    switch (progress.phase) {
+        case "validating":
+            label = "Validating..."
+            fillClass += " d42-progress-bar-fill-indeterminate"
+            fillStyle = {}
+            break
+        case "uploading":
+            label = `Uploading assets (${progress.uploaded}/${progress.total})...`
+            fillStyle = { width: progress.total > 0 ? `${(progress.uploaded / progress.total) * 100}%` : "0%" }
+            break
+        case "publishing":
+            label = "Publishing..."
+            fillClass += " d42-progress-bar-fill-indeterminate"
+            fillStyle = {}
+            break
+        default:
+            progress satisfies never
+            label = ""
+            fillStyle = {}
+    }
+
+    return (
+        <div className="d42-progress-bar">
+            <div className="d42-progress-bar-track">
+                <div className={fillClass} style={fillStyle} />
+            </div>
+            <p className="d42-progress-bar-label">{label}</p>
         </div>
     )
 }

@@ -15,7 +15,7 @@ export type PrePublishingOptions = {
 
 export type PrePublishingError =
     | { _: "MISSING_FRONTMATTER" }
-    | { _: "INVALID_FRONTMATTER"; errors: Post.FrontmatterErrors }
+    | { _: "INVALID_POST_FRONTMATTER"; errors: Post.FrontmatterErrors }
     | { _: "NO_CHANGES_SINCE_LAST_PUBLISH" }
     | { _: "FAILED_TO_GET_SITE_AND_MODULE"; error: Site.GetSiteForFileError }
     | { _: "INVALID_SETTINGS"; errors: Config.SiteSettingsValidationError[] }
@@ -35,6 +35,7 @@ export async function prepareForPublishing(
     file: Obsidian.TFile,
     app: Obsidian.App,
     options: PrePublishingOptions,
+    onAssetProcessed?: Content.ProgressCallback,
 ): Promise<Result<PrePublishingData, PrePublishingError>> {
     options = options || { skipChangesCheck: false }
 
@@ -52,7 +53,7 @@ export async function prepareForPublishing(
                 frontmatter = result.data
                 break
             case ERROR:
-                return Err({ _: "INVALID_FRONTMATTER", errors: result.error })
+                return Err({ _: "INVALID_POST_FRONTMATTER", errors: result.error })
         }
     } else {
         return Err({ _: "MISSING_FRONTMATTER" })
@@ -113,10 +114,15 @@ export async function prepareForPublishing(
     var images!: { image: Image.PublishableImage; isCover: boolean }[]
     {
         let assets = Post.collectAssets(app, file, fileCache)
-        let result = await Content.processAssets(site.config.id, assets, (asset, image) => ({
-            image,
-            isCover: asset.isCover,
-        }))
+        let result = await Content.processAssets(
+            site.config.id,
+            assets,
+            (asset, image) => ({
+                image,
+                isCover: asset.isCover,
+            }),
+            onAssetProcessed,
+        )
         switch (result._) {
             case OK:
                 images = result.data
@@ -145,7 +151,7 @@ export async function prepareForPublishing(
     // Extract content body
     var postBody!: string
     {
-        let result = Content.extractContentBody(app)
+        let result = await Content.extractContentBody(file, app)
         switch (result._) {
             case OK:
                 postBody = result.data

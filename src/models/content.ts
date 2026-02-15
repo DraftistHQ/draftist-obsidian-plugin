@@ -211,6 +211,8 @@ export type AssetUploadError =
     | { _: "FAILED_TO_UPLOAD_IMAGE"; error: Image.ImageUploadError }
     | { _: "FAILED_TO_WRITE_UPLOADED_IMAGE_METADATA"; error: GenericError }
 
+export type ProgressCallback = (processed: number, total: number) => void
+
 export type ProcessAssetsError =
     | { _: "FAILED_TO_READ_ASSETS_METADATA"; error: GenericError }
     | { _: "IMAGES_VALIDATION_FAILED"; errors: Image.ImageValidtaionError[] }
@@ -222,6 +224,7 @@ export async function processAssets<A extends Image.ImageFile, T>(
     siteId: Site.SiteId,
     assets: A[],
     buildResult: (asset: A, image: Image.PublishableImage) => T,
+    onAssetProcessed?: ProgressCallback,
 ): Promise<Result<T[], ProcessAssetsError>> {
     if (assets.length === 0) {
         return Ok([])
@@ -256,6 +259,7 @@ export async function processAssets<A extends Image.ImageFile, T>(
                                     absolutePath: asset.file.path,
                                 }),
                             )
+                            onAssetProcessed?.(processed.length, assets.length)
                         }
                         break
                     }
@@ -316,6 +320,7 @@ export async function processAssets<A extends Image.ImageFile, T>(
                                             absolutePath: asset.file.path,
                                         }),
                                     )
+                                    onAssetProcessed?.(processed.length, assets.length)
                                     break
                                 }
                                 case ERROR: {
@@ -363,13 +368,17 @@ export async function processAssets<A extends Image.ImageFile, T>(
 
 // --- Misc
 
-export function extractContentBody(app: Obsidian.App): Result<string, GenericError> {
-    let editor = app.workspace.activeEditor?.editor
-    if (!editor) return Err(new GenericError("No active editor"))
-
-    let fileContents = editor.getDoc().getValue()
-    let { contentStart } = Obsidian.getFrontMatterInfo(fileContents)
-    return Ok(fileContents.slice(contentStart))
+export async function extractContentBody(
+    file: Obsidian.TFile,
+    app: Obsidian.App,
+): Promise<Result<string, GenericError>> {
+    try {
+        let fileContents = await app.vault.read(file)
+        let { contentStart } = Obsidian.getFrontMatterInfo(fileContents)
+        return Ok(fileContents.slice(contentStart))
+    } catch (error) {
+        return Err(new GenericError("Failed to read file content", error))
+    }
 }
 
 export type PublishTrackingFrontmatter = {

@@ -16,7 +16,7 @@ export type PrePublishingOptions = {
 
 export type PrePublishingError =
     | { _: "MISSING_FRONTMATTER" }
-    | { _: "INVALID_FRONTMATTER"; errors: Doc.FrontmatterErrors }
+    | { _: "INVALID_DOC_FRONTMATTER"; errors: Doc.FrontmatterErrors }
     | { _: "MISSING_POSITION" }
     | { _: "NO_CHANGES_SINCE_LAST_PUBLISH" }
     | { _: "FAILED_TO_GET_SITE_AND_MODULE"; error: Site.GetSiteForFileError }
@@ -35,6 +35,7 @@ export async function prepareForPublishing(
     file: Obsidian.TFile,
     app: Obsidian.App,
     options: PrePublishingOptions,
+    onAssetProcessed?: Content.ProgressCallback,
 ): Promise<Result<PrePublishingData, PrePublishingError>> {
     options = options || { skipChangesCheck: false }
 
@@ -52,7 +53,7 @@ export async function prepareForPublishing(
                 frontmatter = result.data
                 break
             case ERROR:
-                return Err({ _: "INVALID_FRONTMATTER", errors: result.error })
+                return Err({ _: "INVALID_DOC_FRONTMATTER", errors: result.error })
         }
     } else {
         return Err({ _: "MISSING_FRONTMATTER" })
@@ -113,7 +114,7 @@ export async function prepareForPublishing(
     var images!: Image.PublishableImage[]
     {
         let assets = Doc.collectAssets(app, file, fileCache)
-        let result = await Content.processAssets(site.config.id, assets, (_, image) => image)
+        let result = await Content.processAssets(site.config.id, assets, (_, image) => image, onAssetProcessed)
         switch (result._) {
             case OK:
                 images = result.data
@@ -142,7 +143,7 @@ export async function prepareForPublishing(
     // Extract content body
     var pageBody!: string
     {
-        let result = Content.extractContentBody(app)
+        let result = await Content.extractContentBody(file, app)
         switch (result._) {
             case OK:
                 pageBody = result.data
