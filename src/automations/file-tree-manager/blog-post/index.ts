@@ -91,7 +91,7 @@ function buildFolderPath(state: BlogPostState, site: Config.SiteSettings, module
     // Determine post folder name (with or without date prefix)
     let postFolderName: string
     const postedOnResult = Content.PostedOn.safeParse(state.postedOn)
-    if (postedOnResult.success) {
+    if (postedOnResult.success && postedOnResult.data !== null) {
         const datePrefix = Obsidian.moment(postedOnResult.data).format("YYYY-MM-DD")
         postFolderName = `${datePrefix} - ${state.title}`
     } else {
