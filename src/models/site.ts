@@ -2,6 +2,7 @@ import * as Obsidian from "obsidian"
 import { z } from "zod"
 
 import * as Config from "src/config"
+import * as Notice from "src/notice"
 import * as Opaque from "src/utils/opaque"
 import * as Record from "src/utils/record"
 import { Result, Ok, Err, OK, ERROR } from "src/utils/result"
@@ -270,4 +271,47 @@ export async function createFolders(app: Obsidian.App): Promise<Result<void, Val
     }
 
     return Ok(undefined)
+}
+
+export async function renameModuleFolders(
+    app: Obsidian.App,
+    oldSites: Config.SitesSettings,
+    newSites: Config.SitesSettings,
+): Promise<void> {
+    for (const [siteId, newSiteSettings] of Record.entries(newSites)) {
+        const oldSiteSettings = oldSites[siteId]
+        if (!oldSiteSettings?.path) continue
+
+        const sitePath = oldSiteSettings.path
+        const sitePathPrefix = sitePath === "/" ? "" : sitePath
+
+        for (const newModule of newSiteSettings.config.modules) {
+            const oldModule = oldSiteSettings.config.modules.find(m => m.id === newModule.id)
+            if (!oldModule || oldModule.name === newModule.name) continue
+
+            const oldPath = Obsidian.normalizePath(`${sitePathPrefix}/${oldModule.name}`)
+            const newPath = Obsidian.normalizePath(`${sitePathPrefix}/${newModule.name}`)
+
+            const oldExists = await app.vault.adapter.exists(oldPath)
+            if (!oldExists) continue
+
+            const conflict = await app.vault.adapter.exists(newPath)
+            if (conflict) {
+                log.warn(`Cannot rename module folder: destination exists: ${newPath}`)
+                Notice.warning(`Cannot rename "${oldModule.name}" folder — "${newModule.name}" already exists`)
+                continue
+            }
+
+            const folder = app.vault.getAbstractFileByPath(oldPath)
+            if (!folder) continue
+
+            try {
+                await app.fileManager.renameFile(folder, newPath)
+                log.info(`Renamed module folder "${oldModule.name}" to "${newModule.name}"`)
+            } catch (error) {
+                log.error(`Failed to rename module folder "${oldModule.name}" to "${newModule.name}"`, error)
+                Notice.error(`Failed to rename "${oldModule.name}" folder`)
+            }
+        }
+    }
 }

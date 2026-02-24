@@ -128,7 +128,12 @@ export class SettingTab extends Obsidian.PluginSettingTab {
                                         nextSites[site.id] = siteSettings
                                     }
 
+                                    let oldSites = Config.Store.sites()
+                                    await Site.renameModuleFolders(this.app, oldSites, nextSites)
+
                                     await Config.Store.setSites(nextSites)
+                                    await Site.createFolders(this.app)
+
                                     this.display()
                                     break
                                 }
