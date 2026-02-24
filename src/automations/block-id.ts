@@ -77,7 +77,7 @@ export async function ensureBlockIds(
 
             var blockIdSuffix
 
-            if ("type" in block && (block.type === "code" || block.type === "callout" || block.type === "blockquote")) {
+            if ("type" in block && (block.type === "code" || block.type === "callout" || block.type === "blockquote" || block.type === "table")) {
                 blockIdSuffix = `\n^${blockId}`
             } else {
                 blockIdSuffix = ` ^${blockId}`
