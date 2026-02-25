@@ -195,14 +195,18 @@ export async function ensureBlockIdsIfEnabled(
     }
 
     await BlockId.ensureBlockIds(file, app.vault, fileCache)
-    await sleep(10) // let changes propagate so the cache is updated
 
-    let updatedCache = app.metadataCache.getFileCache(file)
-    if (!updatedCache) {
-        return Err(new GenericError("Failed to refresh cache after block IDs update"))
+    // Wait for Obsidian's metadata cache to reflect the block ID changes.
+    // The cache update is async and sometimes takes longer than a single tick.
+    for (let attempt = 0; attempt < 10; attempt++) {
+        await sleep(10)
+        let updatedCache = app.metadataCache.getFileCache(file)
+        if (updatedCache) {
+            return Ok(updatedCache)
+        }
     }
 
-    return Ok(updatedCache)
+    return Err(new GenericError("Failed to refresh cache after block IDs update"))
 }
 
 // --- Assets
