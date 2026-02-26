@@ -315,6 +315,17 @@ export class CreateDocPageModal extends Obsidian.Modal {
         const indent = nbsp.repeat(4).repeat(depth)
         const actionIndent = indent + nbsp.repeat(2)
 
+        // For non-root levels, add "before first" option
+        if (depth > 0 && validPages.length > 0) {
+            const firstPage = validPages[0]
+            locations.push({
+                id: LocationId.before(firstPage.folder),
+                label: `${actionIndent}↑ Before "${firstPage.mdFile.basename}"`,
+                parentFolder: folder,
+                mode: { kind: "prepend", reference: firstPage.folder },
+            })
+        }
+
         for (const { folder: childFolder, mdFile } of validPages) {
             const title = mdFile.basename
 
@@ -745,7 +756,7 @@ function buildPrefillFromContext(
             locationId = LocationId.after(targetFolder)
             break
         case "before": {
-            // Find previous sibling by position and use "after" that, or "beginning" if first
+            // Find previous sibling by position and use "after" that, or "beginning"/"before" if first
             const parentFolder = targetFolder.parent
             const targetPosition = getPositionFromFolder(app, targetFolder)
 
@@ -760,7 +771,13 @@ function buildPrefillFromContext(
                 if (targetIndex > 0) {
                     locationId = LocationId.after(validSiblings[targetIndex - 1].folder)
                 } else {
-                    locationId = LocationId.beginning()
+                    // First among siblings — check if at module root or nested
+                    const modulePath = Obsidian.normalizePath(`${site.path}/${module.name}`)
+                    if (parentFolder.path === modulePath) {
+                        locationId = LocationId.beginning()
+                    } else {
+                        locationId = LocationId.before(targetFolder)
+                    }
                 }
             } else {
                 locationId = LocationId.beginning()

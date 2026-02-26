@@ -5,6 +5,7 @@ import type * as Obsidian from "obsidian"
 export type T =
     | { kind: "beginning" }
     | { kind: "header"; folderPath: string }
+    | { kind: "before"; folderPath: string }
     | { kind: "after"; folderPath: string }
     | { kind: "first-child"; folderPath: string }
 
@@ -16,6 +17,10 @@ export function beginning(): T {
 
 export function header(folder: Obsidian.TFolder): T {
     return { kind: "header", folderPath: folder.path }
+}
+
+export function before(folder: Obsidian.TFolder): T {
+    return { kind: "before", folderPath: folder.path }
 }
 
 export function after(folder: Obsidian.TFolder): T {
@@ -35,6 +40,7 @@ export function eq(a: T, b: T): boolean {
         case "beginning":
             return true
         case "header":
+        case "before":
         case "after":
         case "first-child":
             return a.folderPath === (b as typeof a).folderPath
@@ -51,6 +57,8 @@ export function serialize(loc: T): string {
             return "beginning"
         case "header":
             return `header:${loc.folderPath}`
+        case "before":
+            return `before:${loc.folderPath}`
         case "after":
             return `after:${loc.folderPath}`
         case "first-child":
@@ -67,6 +75,10 @@ export function parse(s: string): T {
 
     if (s.startsWith("header:")) {
         return { kind: "header", folderPath: s.slice(7) }
+    }
+
+    if (s.startsWith("before:")) {
+        return { kind: "before", folderPath: s.slice(7) }
     }
 
     if (s.startsWith("after:")) {
