@@ -188,6 +188,8 @@ export async function prepareForPublishing(
         }
     }
 
+    let collapsed = frontmatter.collapsed ?? null
+
     let pageData = {
         title,
         description,
@@ -196,6 +198,7 @@ export async function prepareForPublishing(
         slug,
         parentId,
         position,
+        collapsed,
         postedOn,
         links,
         images,

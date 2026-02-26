@@ -17,6 +17,7 @@ const DocPageData = z.object({
     slug: Doc.DocPageSlug.nullable(),
     parentId: Doc.DocPageId.nullable(),
     position: z.number(),
+    collapsed: z.boolean().nullable(),
     postedOn: z.string().nullable(),
     links: z.array(Content.InternalLink),
     images: z.array(Image.PublishableImage),
