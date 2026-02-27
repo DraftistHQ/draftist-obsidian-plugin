@@ -1,7 +1,9 @@
 import * as Obsidian from "obsidian"
 
 import type Plugin from "src/main"
+import { Commands } from "src/commands"
 import * as Assets from "src/models/assets"
+import * as Site from "src/models/site"
 import * as Post from "src/models/post"
 import * as Image from "src/models/image"
 import * as Notice from "src/notice"
@@ -15,7 +17,38 @@ type FormState = {
     creditLink: string
 }
 
-export class SetCoverImageModal extends Obsidian.Modal {
+export function registerCommand(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.SET_COVER_IMAGE,
+        checkCallback: (checking: boolean) => {
+            const file = plugin.app.workspace.getActiveFile()
+            if (!file) return false
+
+            const result = Site.getSiteAndModuleForFile(file)
+            if (result._ === ERROR) return false
+
+            switch (result.data.module.kind) {
+                case "blog": {
+                    if (!checking) {
+                        new SetCoverImageModal(plugin, file).open()
+                    }
+                    return true
+                }
+
+                case "docs": {
+                    return false
+                }
+
+                default: {
+                    result.data.module.kind satisfies never
+                    return false
+                }
+            }
+        },
+    })
+}
+
+class SetCoverImageModal extends Obsidian.Modal {
     private file: Obsidian.TFile
     private formState: FormState
     private imageErrorEl: HTMLElement | null = null

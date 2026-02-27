@@ -1,5 +1,7 @@
 import * as Obsidian from "obsidian"
 
+import type Plugin from "src/main"
+import { Commands } from "src/commands"
 import * as Config from "src/config"
 import * as Post from "src/models/post"
 import * as FM from "src/models/fm"
@@ -8,12 +10,22 @@ import * as Notice from "src/notice"
 import { OK, ERROR } from "src/utils/result"
 import * as log from "src/logger"
 
-export function run(app: Obsidian.App): void {
-    if (Config.Store.target() !== "local") {
-        Notice.warning("This command is only available for local environment")
-        return
-    }
+export function registerCommand(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.DELETE_META_ENTRIES,
+        checkCallback: (checking: boolean) => {
+            if (Config.Store.target() !== "local") return false
+            if (!Config.Store.debugging().exposeInternalMetadata) return false
 
+            if (!checking) {
+                deleteMetadata(plugin.app)
+            }
+            return true
+        },
+    })
+}
+
+function deleteMetadata(app: Obsidian.App): void {
     const file = app.workspace.getActiveFile()
 
     if (!file) {

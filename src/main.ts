@@ -1,19 +1,16 @@
 import * as Obsidian from "obsidian"
-import * as _ from "lodash"
 
 import * as Config from "src/config"
-import * as Notice from "src/notice"
-import * as Site from "src/models/site"
-import { Commands } from "src/commands"
 import { SettingTab } from "src/settings"
 import { Styles } from "src/styles"
 import { FileTreeManager } from "src/automations/file-tree-manager"
 import { PendingSyncsManager } from "src/automations/pending-syncs-manager"
+import * as PublishEntryCmd from "src/commands/publish-entry"
 import { PublishingModal } from "src/commands/publish-entry"
 import * as CreateBlogPostCmd from "src/commands/create-blog-post"
 import * as CreateDocPageCmd from "src/commands/create-doc-page"
 import * as MoveDocPageCmd from "src/commands/move-doc-page"
-import { SetCoverImageModal } from "src/commands/set-cover-image"
+import * as SetCoverImageCmd from "src/commands/set-cover-image"
 import * as InsertImageCmd from "src/commands/insert-image"
 import * as InsertGalleryCmd from "src/commands/insert-gallery"
 import * as NormalizeImagesCmd from "src/commands/normalize-images"
@@ -58,136 +55,17 @@ export default class Draft42 extends Obsidian.Plugin {
         MoveDocPageCmd.registerFileMenuEventHandler(this)
 
         // Register commands
-
-        this.addCommand({
-            ...Commands.PUBLISH_ENTRY,
-            callback: () => {
-                let file = this.app.workspace.getActiveFile()
-
-                if (!file) {
-                    Notice.warning("No active file to publish. Open a file you want to publish and try again.")
-                    return
-                }
-
-                this.publishingModals.open(file)
-            },
-        })
-
-        this.addCommand({
-            ...Commands.CREATE_BLOG_POST_IDEA,
-            checkCallback: (checking: boolean) => {
-                if (!Config.Store.onboarded()) return false
-                if (!Site.hasModuleOfKind("blog")) return false
-
-                if (!checking) {
-                    new CreateBlogPostCmd.CreateBlogPostModal(this, { defaultStatus: "Idea" }).open()
-                }
-                return true
-            },
-        })
-
-        this.addCommand({
-            ...Commands.CREATE_BLOG_POST_DRAFT,
-            checkCallback: (checking: boolean) => {
-                if (!Config.Store.onboarded()) return false
-                if (!Site.hasModuleOfKind("blog")) return false
-
-                if (!checking) {
-                    new CreateBlogPostCmd.CreateBlogPostModal(this, { defaultStatus: "Draft" }).open()
-                }
-                return true
-            },
-        })
-
-        this.addCommand({
-            ...Commands.CREATE_DOC_PAGE,
-            checkCallback: (checking: boolean) => {
-                if (!Config.Store.onboarded()) return false
-                if (!Site.hasModuleOfKind("docs")) return false
-
-                if (!checking) {
-                    new CreateDocPageCmd.CreateDocPageModal(this).open()
-                }
-                return true
-            },
-        })
-
-        this.addCommand({
-            ...Commands.INSERT_IMAGE,
-            callback: () => InsertImageCmd.run(this.app),
-        })
-
-        this.addCommand({
-            ...Commands.INSERT_GALLERY,
-            callback: () => InsertGalleryCmd.run(this.app),
-        })
-
-        this.addCommand({
-            ...Commands.NORMALIZE_IMAGES,
-            callback: () => NormalizeImagesCmd.run(this.app),
-        })
-
-        this.addCommand({
-            ...Commands.SET_COVER_IMAGE,
-            callback: () => {
-                const file = this.app.workspace.getActiveFile()
-                if (!file) {
-                    Notice.warning("No active file")
-                    return
-                }
-                new SetCoverImageModal(this, file).open()
-            },
-        })
-
-        this.addCommand({
-            ...Commands.NORMALIZE_FRONTMATTER,
-            callback: () => NormalizeFrontmatterCmd.run(this.app),
-        })
-
-        this.addCommand({
-            ...Commands.COPY_DEBUG_INFO,
-            callback: () => CopyDebugInfoCmd.run(),
-        })
-
-        this.addCommand({
-            ...Commands.MOVE_DOC_PAGE_UP,
-            checkCallback: (checking: boolean) => {
-                if (!Config.Store.onboarded()) return false
-
-                const folder = MoveDocPageCmd.getActiveDocPageFolder(this.app)
-                if (!folder?.parent) return false
-
-                const siblings = MoveDocPageCmd.getSortedSiblings(this.app, folder.parent)
-                const index = siblings.findIndex(s => s.folder.path === folder.path)
-                if (index <= 0) return false
-
-                if (!checking) {
-                    MoveDocPageCmd.movePage(this.app, folder, "up")
-                }
-                return true
-            },
-        })
-
-        this.addCommand({
-            ...Commands.MOVE_DOC_PAGE_DOWN,
-            checkCallback: (checking: boolean) => {
-                if (!Config.Store.onboarded()) return false
-
-                const folder = MoveDocPageCmd.getActiveDocPageFolder(this.app)
-                if (!folder?.parent) return false
-
-                const siblings = MoveDocPageCmd.getSortedSiblings(this.app, folder.parent)
-                const index = siblings.findIndex(s => s.folder.path === folder.path)
-                if (index === -1 || index >= siblings.length - 1) return false
-
-                if (!checking) {
-                    MoveDocPageCmd.movePage(this.app, folder, "down")
-                }
-                return true
-            },
-        })
-
-        this.registerDeleteD42MetadataCommand()
+        PublishEntryCmd.registerCommand(this)
+        CreateBlogPostCmd.registerCommands(this)
+        CreateDocPageCmd.registerCommand(this)
+        MoveDocPageCmd.registerCommands(this)
+        InsertImageCmd.registerCommand(this)
+        InsertGalleryCmd.registerCommand(this)
+        NormalizeImagesCmd.registerCommand(this)
+        SetCoverImageCmd.registerCommand(this)
+        NormalizeFrontmatterCmd.registerCommand(this)
+        CopyDebugInfoCmd.registerCommand(this)
+        DeleteMetadataCmd.registerCommand(this)
 
         this.addSettingTab(new SettingTab(this))
     }
@@ -205,19 +83,6 @@ export default class Draft42 extends Obsidian.Plugin {
             this.styles.injectBlockIdCss(file)
             this.styles.injectInternalFrontmatterCss()
         }
-    }
-
-    registerDeleteD42MetadataCommand() {
-        if (Config.Store.target() === "local" && Config.Store.debugging().exposeInternalMetadata) {
-            this.addCommand({
-                ...Commands.DELETE_META_ENTRIES,
-                callback: () => DeleteMetadataCmd.run(this.app),
-            })
-        }
-    }
-
-    disposeDeleteD42MetadataCommand() {
-        this.removeCommand(Commands.DELETE_META_ENTRIES.id)
     }
 }
 

@@ -1,8 +1,17 @@
 import * as Obsidian from "obsidian"
 
+import type Plugin from "src/main"
+import { Commands } from "src/commands"
 import * as Notice from "src/notice"
 
-export async function run(): Promise<void> {
+export function registerCommand(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.COPY_DEBUG_INFO,
+        callback: () => runCommand(),
+    })
+}
+
+export async function runCommand(): Promise<void> {
     const info = getInfo()
     await navigator.clipboard.writeText(info)
 

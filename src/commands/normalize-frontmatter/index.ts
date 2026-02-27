@@ -1,100 +1,95 @@
 import * as Obsidian from "obsidian"
 
+import type Plugin from "src/main"
+import { Commands } from "src/commands"
 import * as Site from "src/models/site"
 import * as Doc from "src/models/doc"
 import * as Post from "src/models/post"
 import * as Notice from "src/notice"
 import { OK, ERROR } from "src/utils/result"
 
-export async function run(app: Obsidian.App): Promise<void> {
-    const file = app.workspace.getActiveFile()
-    if (!file) {
-        Notice.warning("No active file")
-        return
-    }
+export function registerCommand(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.NORMALIZE_FRONTMATTER,
+        checkCallback: (checking: boolean) => {
+            const file = plugin.app.workspace.getActiveFile()
+            if (!file) return false
 
-    const cache = app.metadataCache.getFileCache(file)
-    if (!cache?.frontmatter) {
-        Notice.warning("No frontmatter found")
-        return
-    }
+            const cache = plugin.app.metadataCache.getFileCache(file)
+            if (!cache?.frontmatter) return false
 
-    const result = Site.getSiteAndModuleForFile(file)
+            const result = Site.getSiteAndModuleForFile(file)
+            if (result._ === ERROR) return false
 
-    switch (result._) {
-        case OK: {
-            const { module } = result.data
+            if (!checking) {
+                normalizeFrontmatter(plugin.app, file, result.data.module)
+            }
+            return true
+        },
+    })
+}
 
-            switch (module.kind) {
-                case "blog": {
-                    const result = await Post.updateFrontmatter(app, file, meta => {
-                        // Add missing base fields with default values
-                        if (!("status" in meta)) {
-                            meta.status = null
-                        }
-                        if (!("description" in meta)) {
-                            meta.description = null
-                        }
-                        if (!("posted on" in meta)) {
-                            meta["posted on"] = ""
-                        }
-                        if (!("tags" in meta)) {
-                            meta.tags = []
-                        }
-                    })
-
-                    switch (result._) {
-                        case OK: {
-                            Notice.info("Frontmatter normalized")
-                            return
-                        }
-                        case ERROR: {
-                            Notice.error("Failed to normalize frontmatter")
-                            return
-                        }
-                    }
+async function normalizeFrontmatter(app: Obsidian.App, file: Obsidian.TFile, module: Site.SiteModule): Promise<void> {
+    switch (module.kind) {
+        case "blog": {
+            const result = await Post.updateFrontmatter(app, file, meta => {
+                // Add missing base fields with default values
+                if (!("status" in meta)) {
+                    meta.status = null
                 }
-
-                case "docs": {
-                    const result = await Doc.updateFrontmatter(app, file, meta => {
-                        // Add missing base fields with default values
-                        if (!("status" in meta)) {
-                            meta.status = "Draft"
-                        }
-                        if (!("description" in meta)) {
-                            meta.description = null
-                        }
-                        if (!("posted on" in meta)) {
-                            meta["posted on"] = ""
-                        }
-                        if (!("tags" in meta)) {
-                            meta.tags = []
-                        }
-                    })
-
-                    switch (result._) {
-                        case OK: {
-                            Notice.info("Frontmatter normalized")
-                            return
-                        }
-                        case ERROR: {
-                            Notice.error("Failed to normalize frontmatter")
-                            return
-                        }
-                    }
+                if (!("description" in meta)) {
+                    meta.description = null
                 }
+                if (!("posted on" in meta)) {
+                    meta["posted on"] = ""
+                }
+                if (!("tags" in meta)) {
+                    meta.tags = []
+                }
+            })
 
-                default:
-                    module.kind satisfies never
+            switch (result._) {
+                case OK: {
+                    Notice.info("Frontmatter normalized")
+                    return
+                }
+                case ERROR: {
+                    Notice.error("Failed to normalize frontmatter")
+                    return
+                }
             }
         }
-        case ERROR: {
-            // TODO: Improve error - match against result.error
-            Notice.warning("File doesn't belong to any site")
-            return
+
+        case "docs": {
+            const result = await Doc.updateFrontmatter(app, file, meta => {
+                // Add missing base fields with default values
+                if (!("status" in meta)) {
+                    meta.status = "Draft"
+                }
+                if (!("description" in meta)) {
+                    meta.description = null
+                }
+                if (!("posted on" in meta)) {
+                    meta["posted on"] = ""
+                }
+                if (!("tags" in meta)) {
+                    meta.tags = []
+                }
+            })
+
+            switch (result._) {
+                case OK: {
+                    Notice.info("Frontmatter normalized")
+                    return
+                }
+                case ERROR: {
+                    Notice.error("Failed to normalize frontmatter")
+                    return
+                }
+            }
         }
-        default: {
-            result satisfies never
-        }
+
+        default:
+            module.kind satisfies never
     }
 }

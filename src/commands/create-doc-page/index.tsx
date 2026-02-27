@@ -1,6 +1,7 @@
 import * as Obsidian from "obsidian"
 
 import type Plugin from "src/main"
+import { Commands } from "src/commands"
 import * as Config from "src/config"
 import * as Notice from "src/notice"
 import * as Doc from "src/models/doc"
@@ -43,7 +44,7 @@ export type CreateDocPagePrefill = {
     locationId: LocationId.T
 }
 
-export class CreateDocPageModal extends Obsidian.Modal {
+class CreateDocPageModal extends Obsidian.Modal {
     private sites: Config.SiteSettings[]
     private formState: FormState
     private titleInputEl: HTMLInputElement | null = null
@@ -639,6 +640,23 @@ export class CreateDocPageModal extends Obsidian.Modal {
         const { contentEl } = this
         contentEl.empty()
     }
+}
+
+// --- Command
+
+export function registerCommand(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.CREATE_DOC_PAGE,
+        checkCallback: (checking: boolean) => {
+            if (!Config.Store.onboarded()) return false
+            if (!Site.hasModuleOfKind("docs")) return false
+
+            if (!checking) {
+                new CreateDocPageModal(plugin).open()
+            }
+            return true
+        },
+    })
 }
 
 // --- Context Menu

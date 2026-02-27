@@ -1,6 +1,7 @@
 import * as Obsidian from "obsidian"
 
 import type Plugin from "src/main"
+import { Commands } from "src/commands"
 import * as Config from "src/config"
 import * as Content from "src/models/content"
 import * as Post from "src/models/post"
@@ -25,7 +26,7 @@ type CreateBlogPostOptions = {
     prefilledSiteId?: Site.SiteId
 }
 
-export class CreateBlogPostModal extends Obsidian.Modal {
+class CreateBlogPostModal extends Obsidian.Modal {
     private formState: FormState
     private sites: Config.SiteSettings[]
     private titleInputEl: HTMLInputElement | null = null
@@ -266,6 +267,36 @@ export class CreateBlogPostModal extends Obsidian.Modal {
         const { contentEl } = this
         contentEl.empty()
     }
+}
+
+// --- Commands
+
+export function registerCommands(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.CREATE_BLOG_POST_IDEA,
+        checkCallback: (checking: boolean) => {
+            if (!Config.Store.onboarded()) return false
+            if (!Site.hasModuleOfKind("blog")) return false
+
+            if (!checking) {
+                new CreateBlogPostModal(plugin, { defaultStatus: "Idea" }).open()
+            }
+            return true
+        },
+    })
+
+    plugin.addCommand({
+        ...Commands.CREATE_BLOG_POST_DRAFT,
+        checkCallback: (checking: boolean) => {
+            if (!Config.Store.onboarded()) return false
+            if (!Site.hasModuleOfKind("blog")) return false
+
+            if (!checking) {
+                new CreateBlogPostModal(plugin, { defaultStatus: "Draft" }).open()
+            }
+            return true
+        },
+    })
 }
 
 // --- Context Menu

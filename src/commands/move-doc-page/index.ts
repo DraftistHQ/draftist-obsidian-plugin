@@ -8,7 +8,50 @@ import * as Site from "src/models/site"
 import * as FM from "src/models/fm"
 import * as Position from "src/utils/position"
 import { OK, ERROR } from "src/utils/result"
+import { Commands } from "src/commands"
 import * as log from "src/logger"
+
+// --- Commands
+
+export function registerCommands(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.MOVE_DOC_PAGE_UP,
+        checkCallback: (checking: boolean) => {
+            if (!Config.Store.onboarded()) return false
+
+            const folder = getActiveDocPageFolder(plugin.app)
+            if (!folder?.parent) return false
+
+            const siblings = getSortedSiblings(plugin.app, folder.parent)
+            const index = siblings.findIndex(s => s.folder.path === folder.path)
+            if (index <= 0) return false
+
+            if (!checking) {
+                movePage(plugin.app, folder, "up")
+            }
+            return true
+        },
+    })
+
+    plugin.addCommand({
+        ...Commands.MOVE_DOC_PAGE_DOWN,
+        checkCallback: (checking: boolean) => {
+            if (!Config.Store.onboarded()) return false
+
+            const folder = getActiveDocPageFolder(plugin.app)
+            if (!folder?.parent) return false
+
+            const siblings = getSortedSiblings(plugin.app, folder.parent)
+            const index = siblings.findIndex(s => s.folder.path === folder.path)
+            if (index === -1 || index >= siblings.length - 1) return false
+
+            if (!checking) {
+                movePage(plugin.app, folder, "down")
+            }
+            return true
+        },
+    })
+}
 
 // --- Helpers
 
@@ -105,11 +148,7 @@ export function getSortedSiblings(app: Obsidian.App, parentFolder: Obsidian.TFol
         .sort((a, b) => a.position - b.position)
 }
 
-export async function movePage(
-    app: Obsidian.App,
-    targetFolder: Obsidian.TFolder,
-    direction: "up" | "down",
-): Promise<void> {
+async function movePage(app: Obsidian.App, targetFolder: Obsidian.TFolder, direction: "up" | "down"): Promise<void> {
     const parentFolder = targetFolder.parent
     if (!parentFolder) return
 

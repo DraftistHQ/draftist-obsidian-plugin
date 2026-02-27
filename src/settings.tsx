@@ -335,10 +335,8 @@ export class SettingTab extends Obsidian.PluginSettingTab {
                 await Config.Store.setDebuggingExposeInternalMetadata(value)
                 if (value) {
                     this.plugin.styles.disposeInternalFrontmatterCss()
-                    this.plugin.registerDeleteD42MetadataCommand()
                 } else {
                     this.plugin.styles.injectInternalFrontmatterCss()
-                    this.plugin.disposeDeleteD42MetadataCommand()
                 }
                 this.display()
             }),
@@ -349,7 +347,7 @@ export class SettingTab extends Obsidian.PluginSettingTab {
         new Obsidian.ExtraButtonComponent(footer)
             .setIcon("copy")
             .setTooltip("Copy debug info")
-            .onClick(() => CopyDebugInfoCmd.run())
+            .onClick(() => CopyDebugInfoCmd.runCommand())
     }
 
     updateBlockIdCss() {

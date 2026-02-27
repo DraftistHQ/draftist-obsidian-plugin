@@ -13,9 +13,28 @@ import { OK, ERROR } from "src/utils/result"
 import * as Timer from "src/utils/timer"
 import * as log from "src/logger"
 import * as Notice from "src/notice"
+import { Commands } from "src/commands"
 
 import * as PostPublishing from "./publish-post"
 import * as DocPublishing from "./publish-doc"
+
+export function registerCommand(plugin: Plugin): void {
+    plugin.addCommand({
+        ...Commands.PUBLISH_ENTRY,
+        checkCallback: (checking: boolean) => {
+            const file = plugin.app.workspace.getActiveFile()
+            if (!file) return false
+
+            const result = Site.getSiteAndModuleForFile(file)
+            if (result._ === ERROR) return false
+
+            if (!checking) {
+                plugin.publishingModals.open(file)
+            }
+            return true
+        },
+    })
+}
 
 export class PublishingModal extends Obsidian.Modal {
     private file: Obsidian.TFile
