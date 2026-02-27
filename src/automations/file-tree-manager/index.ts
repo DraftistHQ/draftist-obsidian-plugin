@@ -1,6 +1,7 @@
 import * as Obsidian from "obsidian"
 
 import * as Config from "src/config"
+import * as Doc from "src/models/doc"
 import * as Post from "src/models/post"
 import * as Site from "src/models/site"
 import * as Image from "src/models/image"
@@ -225,7 +226,7 @@ export class FileTreeManager {
 
     // Doc folder format: "01 - Title" or "Title"
     private async syncDocPageFolderRename(folder: Obsidian.TFolder, mdFile: Obsidian.TFile): Promise<void> {
-        const folderTitle = folder.name.replace(/^\d+\s*[-–—]\s*/, "")
+        const folderTitle = Doc.extractTitleFromFolderName(folder.name) ?? folder.name
         await this.syncNoteBasename(folder, mdFile, folderTitle)
     }
 

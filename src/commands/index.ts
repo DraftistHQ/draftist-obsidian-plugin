@@ -24,6 +24,14 @@ export const Commands: Record<string, Command> = {
         id: "create-doc-page",
         name: "Create new doc page",
     },
+    MOVE_DOC_PAGE_UP: {
+        id: "move-doc-page-up",
+        name: "Move doc page up",
+    },
+    MOVE_DOC_PAGE_DOWN: {
+        id: "move-doc-page-down",
+        name: "Move doc page down",
+    },
     INSERT_IMAGE: {
         id: "insert-image",
         name: "Insert image",

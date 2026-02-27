@@ -579,8 +579,7 @@ export class CreateDocPageModal extends Obsidian.Modal {
         // Rename in reverse order to avoid conflicts
         for (const { folder, prefix } of toShift) {
             const newPrefix = this.formatPrefix(prefix + 1)
-            const nameParts = folder.name.match(/^\d+\s*[-–—]\s*(.*)$/)
-            const nameWithoutPrefix = nameParts ? nameParts[1] : folder.name
+            const nameWithoutPrefix = Doc.extractTitleFromFolderName(folder.name) ?? folder.name
             const newName = `${newPrefix} - ${nameWithoutPrefix}`
             const newPath = Obsidian.normalizePath(`${parentFolder.path}/${newName}`)
 

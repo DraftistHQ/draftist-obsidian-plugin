@@ -90,9 +90,22 @@ export function updateFrontmatter(app: Obsidian.App, file: Obsidian.TFile, fn: (
 
 // Extract numeric position from folder name prefix.
 // e.g., "01 - Introduction" -> 1, "02-Setup" -> 2, "Quick Start" -> null
+const FOLDER_PREFIX_REGEX = /^(\d+)\s*[-–—]\s*/
+
 export function extractPositionFromFolderName(folderName: string): number | null {
-    const match = folderName.match(/^(\d+)\s*[-–—]\s*/)
+    const match = folderName.match(FOLDER_PREFIX_REGEX)
     return match ? parseInt(match[1], 10) : null
+}
+
+export function extractTitleFromFolderName(folderName: string): string | null {
+    const match = folderName.match(FOLDER_PREFIX_REGEX)
+    return match ? folderName.slice(match[0].length) : null
+}
+
+export function parseFolderName(folderName: string): { position: number; title: string } | null {
+    const match = folderName.match(FOLDER_PREFIX_REGEX)
+    if (!match) return null
+    return { position: parseInt(match[1], 10), title: folderName.slice(match[0].length) }
 }
 
 // Obsidian-specific hierarchy info derived from folder structure.

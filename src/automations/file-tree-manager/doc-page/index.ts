@@ -125,8 +125,7 @@ export async function handleDocPageFolderDelete(
     for (const { folder, position } of siblings) {
         const newPosition = position - 1
         const paddedPosition = String(newPosition).padStart(2, "0")
-        const nameParts = folder.name.match(/^\d+\s*[-–—]\s*(.*)$/)
-        const nameWithoutPrefix = nameParts ? nameParts[1] : folder.name
+        const nameWithoutPrefix = Doc.extractTitleFromFolderName(folder.name) ?? folder.name
         const newName = `${paddedPosition} - ${nameWithoutPrefix}`
         const newPath = `${parentFolder.path}/${newName}`
 

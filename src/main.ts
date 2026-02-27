@@ -12,6 +12,7 @@ import { PendingSyncsManager } from "src/automations/pending-syncs-manager"
 import { PublishingModal } from "src/commands/publish-entry"
 import * as CreateBlogPostCmd from "src/commands/create-blog-post"
 import * as CreateDocPageCmd from "src/commands/create-doc-page"
+import * as MoveDocPageCmd from "src/commands/move-doc-page"
 import { SetCoverImageModal } from "src/commands/set-cover-image"
 import * as InsertImageCmd from "src/commands/insert-image"
 import * as InsertGalleryCmd from "src/commands/insert-gallery"
@@ -54,6 +55,7 @@ export default class Draft42 extends Obsidian.Plugin {
         // Register file menu handlers
         CreateBlogPostCmd.registerFileMenuEventHandler(this)
         CreateDocPageCmd.registerFileMenuEventHandler(this)
+        MoveDocPageCmd.registerFileMenuEventHandler(this)
 
         // Register commands
 
@@ -145,6 +147,44 @@ export default class Draft42 extends Obsidian.Plugin {
         this.addCommand({
             ...Commands.COPY_DEBUG_INFO,
             callback: () => CopyDebugInfoCmd.run(),
+        })
+
+        this.addCommand({
+            ...Commands.MOVE_DOC_PAGE_UP,
+            checkCallback: (checking: boolean) => {
+                if (!Config.Store.onboarded()) return false
+
+                const folder = MoveDocPageCmd.getActiveDocPageFolder(this.app)
+                if (!folder?.parent) return false
+
+                const siblings = MoveDocPageCmd.getSortedSiblings(this.app, folder.parent)
+                const index = siblings.findIndex(s => s.folder.path === folder.path)
+                if (index <= 0) return false
+
+                if (!checking) {
+                    MoveDocPageCmd.movePage(this.app, folder, "up")
+                }
+                return true
+            },
+        })
+
+        this.addCommand({
+            ...Commands.MOVE_DOC_PAGE_DOWN,
+            checkCallback: (checking: boolean) => {
+                if (!Config.Store.onboarded()) return false
+
+                const folder = MoveDocPageCmd.getActiveDocPageFolder(this.app)
+                if (!folder?.parent) return false
+
+                const siblings = MoveDocPageCmd.getSortedSiblings(this.app, folder.parent)
+                const index = siblings.findIndex(s => s.folder.path === folder.path)
+                if (index === -1 || index >= siblings.length - 1) return false
+
+                if (!checking) {
+                    MoveDocPageCmd.movePage(this.app, folder, "down")
+                }
+                return true
+            },
         })
 
         this.registerDeleteD42MetadataCommand()
