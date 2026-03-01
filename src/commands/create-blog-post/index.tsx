@@ -8,9 +8,92 @@ import * as Post from "src/models/post"
 import * as Site from "src/models/site"
 import * as Notice from "src/notice"
 import * as FieldError from "src/ui/field-error"
-import { OK, ERROR } from "src/utils/result"
+import { type Result, Ok, Err, OK, ERROR } from "src/utils/result"
 import * as Timer from "src/utils/timer"
 import * as log from "src/logger"
+
+// --- Action
+
+export type CreateBlogPostInput = {
+    siteId: Site.SiteId
+    status: Post.PostPrepublishedStatus
+    title: string
+    description?: string
+}
+
+export type CreateBlogPostError =
+    | { _: "SITE_NOT_FOUND" }
+    | { _: "SITE_PATH_NOT_CONFIGURED" }
+    | { _: "BLOG_MODULE_NOT_FOUND" }
+    | { _: "TITLE_REQUIRED" }
+    | { _: "FRONTMATTER_UPDATE_FAILED"; error: Error }
+
+export async function createBlogPost(
+    app: Obsidian.App,
+    input: CreateBlogPostInput,
+): Promise<Result<Obsidian.TFile, CreateBlogPostError>> {
+    const title = input.title.trim()
+    if (!title) {
+        return Err({ _: "TITLE_REQUIRED" })
+    }
+
+    const sites = Site.sitesWithModule("blog")
+    const site = sites.find(s => s.config.id === input.siteId)
+    if (!site) {
+        return Err({ _: "SITE_NOT_FOUND" })
+    }
+
+    if (!site.path) {
+        return Err({ _: "SITE_PATH_NOT_CONFIGURED" })
+    }
+
+    const blogModule = site.config.modules.find(m => m.kind === "blog")
+    if (!blogModule) {
+        return Err({ _: "BLOG_MODULE_NOT_FOUND" })
+    }
+
+    const description = input.description?.trim() ?? ""
+
+    // Build path
+    const siteFolderPath = Obsidian.normalizePath(site.path)
+    const moduleFolderPath = Obsidian.normalizePath(`${siteFolderPath}/${blogModule.name}`)
+    const statusFolderName = Post.getStatusFolderName(input.status)
+    const statusFolderPath = Obsidian.normalizePath(`${moduleFolderPath}/${statusFolderName}`)
+    const postFolderPath = Obsidian.normalizePath(`${statusFolderPath}/${title}`)
+    const postFilePath = Obsidian.normalizePath(`${postFolderPath}/${title}.md`)
+
+    // Ensure directories exist
+    await ensureFolder(app, moduleFolderPath)
+    await ensureFolder(app, statusFolderPath)
+    await ensureFolder(app, postFolderPath)
+
+    // Create file with empty content first
+    const file = await app.vault.create(postFilePath, "")
+
+    // Add frontmatter
+    const result = await Post.updateFrontmatter(app, file, frontmatter => {
+        frontmatter.status = input.status
+        frontmatter.description = description || null
+        frontmatter["posted on"] = ""
+        frontmatter.tags = []
+    })
+
+    switch (result._) {
+        case OK:
+            return Ok(file)
+        case ERROR:
+            return Err({ _: "FRONTMATTER_UPDATE_FAILED", error: result.error })
+        default:
+            return result satisfies never
+    }
+}
+
+async function ensureFolder(app: Obsidian.App, path: string): Promise<void> {
+    const exists = await app.vault.adapter.exists(path)
+    if (!exists) {
+        await app.vault.createFolder(path)
+    }
+}
 
 // --- Modal
 
@@ -191,75 +274,27 @@ class CreateBlogPostModal extends Obsidian.Modal {
             return
         }
 
-        try {
-            const file = await this.createBlogPost()
-            this.close()
-
-            // Open the file in editor
-            const leaf = this.app.workspace.getLeaf(false)
-            await leaf.openFile(file)
-        } catch (error) {
-            log.error("Failed to create blog post", error)
-            Notice.error("Failed to create blog post", { permanent: true })
-        }
-    }
-
-    async createBlogPost(): Promise<Obsidian.TFile> {
-        const site = this.sites.find(s => s.config.id === this.formState.siteId)
-        if (!site) {
-            throw new Error("Site not found")
-        }
-
-        if (!site.path) {
-            throw new Error("Site path not configured")
-        }
-
-        const blogModule = site.config.modules.find(m => m.kind === "blog")
-        if (!blogModule) {
-            throw new Error("Blog module not found for this site")
-        }
-
-        const title = this.formState.title.trim()
-        const description = this.formState.description.trim()
-
-        // Build path
-        const siteFolderPath = Obsidian.normalizePath(site.path)
-        const moduleFolderPath = Obsidian.normalizePath(`${siteFolderPath}/${blogModule.name}`)
-        const statusFolderName = Post.getStatusFolderName(this.formState.status)
-        const statusFolderPath = Obsidian.normalizePath(`${moduleFolderPath}/${statusFolderName}`)
-        const postFolderPath = Obsidian.normalizePath(`${statusFolderPath}/${title}`)
-        const postFilePath = Obsidian.normalizePath(`${postFolderPath}/${title}.md`)
-
-        // Ensure directories exist
-        await this.ensureFolder(moduleFolderPath)
-        await this.ensureFolder(statusFolderPath)
-        await this.ensureFolder(postFolderPath)
-
-        // Create file with empty content first
-        const file = await this.app.vault.create(postFilePath, "")
-
-        // Add frontmatter
-        const result = await Post.updateFrontmatter(this.app, file, frontmatter => {
-            frontmatter.status = this.formState.status
-            frontmatter.description = description || null
-            frontmatter["posted on"] = ""
-            frontmatter.tags = []
+        const result = await createBlogPost(this.app, {
+            siteId: this.formState.siteId,
+            status: this.formState.status,
+            title: this.formState.title,
+            description: this.formState.description,
         })
 
         switch (result._) {
             case OK: {
-                return file
+                this.close()
+                const leaf = this.app.workspace.getLeaf(false)
+                await leaf.openFile(result.data)
+                break
             }
             case ERROR: {
-                throw result.error
+                log.error("Failed to create blog post", result.error)
+                Notice.error("Failed to create blog post", { permanent: true })
+                break
             }
-        }
-    }
-
-    async ensureFolder(path: string): Promise<void> {
-        const exists = await this.app.vault.adapter.exists(path)
-        if (!exists) {
-            await this.app.vault.createFolder(path)
+            default:
+                result satisfies never
         }
     }
 
@@ -297,6 +332,26 @@ export function registerCommands(plugin: Plugin): void {
             return true
         },
     })
+
+    // Headless API
+    plugin.headless.createBlogPost = async input => {
+        const result = await createBlogPost(plugin.app, {
+            siteId: input.siteId,
+            status: input.status ?? "Draft",
+            title: input.title,
+            description: input.description,
+        })
+
+        switch (result._) {
+            case OK:
+                return { path: result.data.path }
+            case ERROR:
+                throw new Error(result.error._)
+            default:
+                result satisfies never
+                throw new Error("unreachable")
+        }
+    }
 }
 
 // --- Context Menu

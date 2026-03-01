@@ -10,17 +10,275 @@ import * as FM from "src/models/fm"
 import * as FieldError from "src/ui/field-error"
 import * as Position from "src/utils/position"
 import * as Timer from "src/utils/timer"
-import { OK, ERROR } from "src/utils/result"
+import { type Result, Ok, Err, OK, ERROR } from "src/utils/result"
 import * as log from "src/logger"
 import * as LocationId from "./location-id"
 
-// --- Modal
+// --- Action
 
-export type InsertionMode =
+export type CreateDocPageInput = {
+    siteId: Site.SiteId
+    moduleName?: string
+    location: CreateDocPageLocation
+    title: string
+    description?: string
+}
+
+export type CreateDocPageLocation =
+    | { kind: "beginning" }
+    | { kind: "before"; folderPath: string }
+    | { kind: "after"; folderPath: string }
+    | { kind: "first-child"; folderPath: string }
+
+export type CreateDocPageError =
+    | { _: "SITE_NOT_FOUND" }
+    | { _: "SITE_PATH_NOT_CONFIGURED" }
+    | { _: "DOCS_MODULE_NOT_FOUND" }
+    | { _: "TITLE_REQUIRED" }
+    | { _: "LOCATION_FOLDER_NOT_FOUND" }
+    | { _: "POSITION_CALCULATION_FAILED" }
+    | { _: "FRONTMATTER_UPDATE_FAILED"; error: Error }
+
+export async function createDocPage(
+    app: Obsidian.App,
+    input: CreateDocPageInput,
+): Promise<Result<Obsidian.TFile, CreateDocPageError>> {
+    const title = input.title.trim()
+    if (!title) return Err({ _: "TITLE_REQUIRED" })
+
+    const sites = Site.sitesWithModule("docs")
+    const site = sites.find(s => s.config.id === input.siteId)
+    if (!site) return Err({ _: "SITE_NOT_FOUND" })
+    if (!site.path) return Err({ _: "SITE_PATH_NOT_CONFIGURED" })
+
+    const docsModules = site.config.modules.filter(m => m.kind === "docs")
+    const module = input.moduleName ? docsModules.find(m => m.name === input.moduleName) : docsModules[0]
+    if (!module) return Err({ _: "DOCS_MODULE_NOT_FOUND" })
+
+    const modulePath = Obsidian.normalizePath(`${site.path}/${module.name}`)
+    await ensureFolder(app, modulePath)
+
+    const resolved = resolveLocation(app, modulePath, input.location)
+    if (!resolved) return Err({ _: "LOCATION_FOLDER_NOT_FOUND" })
+
+    const { parentFolder, mode } = resolved
+
+    const position = calculatePosition(app, parentFolder, mode)
+    if (position === null) return Err({ _: "POSITION_CALCULATION_FAILED" })
+
+    const folderPrefix = await calculateFolderPrefix(app, parentFolder, mode)
+
+    const description = input.description?.trim() ?? ""
+    const pageFolderName = `${folderPrefix} - ${title}`
+    const pageFolderPath = Obsidian.normalizePath(`${parentFolder.path}/${pageFolderName}`)
+    const pageFilePath = Obsidian.normalizePath(`${pageFolderPath}/${title}.md`)
+
+    await ensureFolder(app, pageFolderPath)
+
+    const file = await app.vault.create(pageFilePath, "")
+
+    const result = await Doc.updateFrontmatter(app, file, frontmatter => {
+        frontmatter.status = "Draft"
+        frontmatter.description = description || null
+        frontmatter["posted on"] = ""
+        frontmatter.tags = []
+        frontmatter[FM.D42_POSITION] = position
+    })
+
+    switch (result._) {
+        case OK:
+            return Ok(file)
+        case ERROR:
+            return Err({ _: "FRONTMATTER_UPDATE_FAILED", error: result.error })
+        default:
+            return result satisfies never
+    }
+}
+
+type InsertionMode =
     | { kind: "root" }
     | { kind: "prepend"; reference: Obsidian.TFolder }
     | { kind: "append"; reference: Obsidian.TFolder }
     | { kind: "child"; parent: Obsidian.TFolder }
+
+function resolveLocation(
+    app: Obsidian.App,
+    modulePath: string,
+    location: CreateDocPageLocation,
+): { parentFolder: Obsidian.TFolder; mode: InsertionMode } | null {
+    switch (location.kind) {
+        case "beginning": {
+            const moduleFolder = app.vault.getAbstractFileByPath(modulePath)
+            if (!(moduleFolder instanceof Obsidian.TFolder)) return null
+            return { parentFolder: moduleFolder, mode: { kind: "root" } }
+        }
+        case "before": {
+            const folder = app.vault.getAbstractFileByPath(location.folderPath)
+            if (!(folder instanceof Obsidian.TFolder) || !folder.parent) return null
+            return { parentFolder: folder.parent, mode: { kind: "prepend", reference: folder } }
+        }
+        case "after": {
+            const folder = app.vault.getAbstractFileByPath(location.folderPath)
+            if (!(folder instanceof Obsidian.TFolder) || !folder.parent) return null
+            return { parentFolder: folder.parent, mode: { kind: "append", reference: folder } }
+        }
+        case "first-child": {
+            const folder = app.vault.getAbstractFileByPath(location.folderPath)
+            if (!(folder instanceof Obsidian.TFolder)) return null
+            return { parentFolder: folder, mode: { kind: "child", parent: folder } }
+        }
+    }
+}
+
+function calculatePosition(app: Obsidian.App, parentFolder: Obsidian.TFolder, mode: InsertionMode): number | null {
+    const siblings = getSiblingPages(parentFolder)
+    const siblingPositions = getPositionsFromFrontmatter(app, siblings)
+
+    if (siblingPositions.length === 0) {
+        return Position.initial()
+    }
+
+    switch (mode.kind) {
+        case "root": {
+            const minPos = Math.min(...siblingPositions)
+            return Position.prepend(minPos)
+        }
+        case "child": {
+            const maxPos = Math.max(...siblingPositions)
+            return Position.append(maxPos)
+        }
+        case "prepend": {
+            const refPosition = getPositionFromFolder(app, mode.reference)
+            if (refPosition === null) return null
+            const beforePositions = siblingPositions.filter(p => p < refPosition)
+            if (beforePositions.length === 0) {
+                return Position.prepend(refPosition)
+            } else {
+                const maxBefore = Math.max(...beforePositions)
+                return Position.insert(maxBefore, refPosition)
+            }
+        }
+        case "append": {
+            const refPosition = getPositionFromFolder(app, mode.reference)
+            if (refPosition === null) return null
+            const afterPositions = siblingPositions.filter(p => p > refPosition)
+            if (afterPositions.length === 0) {
+                return Position.append(refPosition)
+            } else {
+                const minAfter = Math.min(...afterPositions)
+                return Position.insert(refPosition, minAfter)
+            }
+        }
+    }
+}
+
+async function calculateFolderPrefix(
+    app: Obsidian.App,
+    parentFolder: Obsidian.TFolder,
+    mode: InsertionMode,
+): Promise<string> {
+    const siblings = getSiblingFolders(parentFolder)
+
+    if (siblings.length === 0) {
+        return "01"
+    }
+
+    const prefixes = siblings.map(f => Doc.extractPositionFromFolderName(f.name)).filter((p): p is number => p !== null)
+
+    if (prefixes.length === 0) {
+        return "01"
+    }
+
+    switch (mode.kind) {
+        case "root": {
+            await shiftFolderPrefixes(app, parentFolder, 1)
+            return "01"
+        }
+        case "child": {
+            const maxPrefix = Math.max(...prefixes)
+            return formatPrefix(maxPrefix + 1)
+        }
+        case "prepend": {
+            const refPrefix = Doc.extractPositionFromFolderName(mode.reference.name) ?? 1
+            await shiftFolderPrefixes(app, parentFolder, refPrefix)
+            return formatPrefix(refPrefix)
+        }
+        case "append": {
+            const refPrefix = Doc.extractPositionFromFolderName(mode.reference.name) ?? 1
+            await shiftFolderPrefixes(app, parentFolder, refPrefix + 1)
+            return formatPrefix(refPrefix + 1)
+        }
+    }
+}
+
+async function shiftFolderPrefixes(
+    app: Obsidian.App,
+    parentFolder: Obsidian.TFolder,
+    fromPrefix: number,
+): Promise<void> {
+    const siblings = getSiblingFolders(parentFolder)
+
+    const toShift = siblings
+        .map(f => ({ folder: f, prefix: Doc.extractPositionFromFolderName(f.name) }))
+        .filter((x): x is { folder: Obsidian.TFolder; prefix: number } => x.prefix !== null && x.prefix >= fromPrefix)
+        .sort((a, b) => b.prefix - a.prefix)
+
+    for (const { folder, prefix } of toShift) {
+        const newPrefix = formatPrefix(prefix + 1)
+        const nameWithoutPrefix = Doc.extractTitleFromFolderName(folder.name) ?? folder.name
+        const newName = `${newPrefix} - ${nameWithoutPrefix}`
+        const newPath = Obsidian.normalizePath(`${parentFolder.path}/${newName}`)
+
+        await app.vault.rename(folder, newPath)
+    }
+}
+
+function formatPrefix(num: number): string {
+    return num.toString().padStart(2, "0")
+}
+
+function getSiblingFolders(parentFolder: Obsidian.TFolder): Obsidian.TFolder[] {
+    return parentFolder.children.filter((c): c is Obsidian.TFolder => c instanceof Obsidian.TFolder)
+}
+
+function getSiblingPages(parentFolder: Obsidian.TFolder): Obsidian.TFile[] {
+    const result: Obsidian.TFile[] = []
+
+    for (const child of parentFolder.children) {
+        if (child instanceof Obsidian.TFolder) {
+            const mdFile = child.children.find(
+                (c): c is Obsidian.TFile => c instanceof Obsidian.TFile && c.extension === "md",
+            )
+            if (mdFile) {
+                result.push(mdFile)
+            }
+        }
+    }
+
+    return result
+}
+
+function getPositionsFromFrontmatter(app: Obsidian.App, files: Obsidian.TFile[]): number[] {
+    const positions: number[] = []
+
+    for (const file of files) {
+        const pos = getPositionFromFile(app, file)
+        if (pos !== null) {
+            positions.push(pos)
+        }
+    }
+
+    return positions
+}
+
+async function ensureFolder(app: Obsidian.App, path: string): Promise<void> {
+    const exists = await app.vault.adapter.exists(path)
+    if (!exists) {
+        await app.vault.createFolder(path)
+    }
+}
+
+// --- Modal
 
 type PageLocation = {
     id: LocationId.T
@@ -404,235 +662,50 @@ class CreateDocPageModal extends Obsidian.Modal {
             return
         }
 
-        try {
-            const file = await this.createDocPage(trimmedTitle, this.formState.description.trim())
-            if (!file) return
+        const location = this.locationIdToLocation(this.formState.locationId)
+        if (!location) return
 
-            this.close()
-
-            const leaf = this.app.workspace.getLeaf(false)
-            await leaf.openFile(file)
-        } catch (error) {
-            log.error("Failed to create doc page", error)
-            Notice.error("Failed to create doc page", { permanent: true })
-        }
-    }
-
-    async createDocPage(title: string, description: string): Promise<Obsidian.TFile | null> {
         const site = this.sites.find(s => s.config.id === this.formState.siteId)
-        if (!site?.path) throw new Error("Site not found")
+        const docsModules = site?.config.modules.filter(m => m.kind === "docs") ?? []
+        const moduleName = docsModules[this.formState.moduleIndex]?.name
 
-        const docsModules = site.config.modules.filter(m => m.kind === "docs")
-        const module = docsModules[this.formState.moduleIndex]
-        if (!module) throw new Error("Module not found")
-
-        const locations = this.getLocations()
-        const location = locations.find(l => LocationId.eq(l.id, this.formState.locationId))
-        if (!location) throw new Error("Location not found")
-
-        const { parentFolder, mode } = location
-
-        // Calculate position
-        const position = this.calculatePosition(parentFolder, mode)
-        if (position === null) {
-            Notice.error("Failed to add a new page because reference page is missing position data.")
-            return null
-        }
-
-        // Calculate folder prefix (for display ordering in file tree)
-        const folderPrefix = await this.calculateFolderPrefix(parentFolder, mode)
-
-        // Build paths
-        const pageFolderName = `${folderPrefix} - ${title}`
-        const pageFolderPath = Obsidian.normalizePath(`${parentFolder.path}/${pageFolderName}`)
-        const pageFilePath = Obsidian.normalizePath(`${pageFolderPath}/${title}.md`)
-
-        // Create folder
-        await this.ensureFolder(pageFolderPath)
-
-        // Create file with empty content
-        const file = await this.app.vault.create(pageFilePath, "")
-
-        // Add frontmatter
-        const result = await Doc.updateFrontmatter(this.app, file, frontmatter => {
-            frontmatter.status = "Draft"
-            frontmatter.description = description || null
-            frontmatter["posted on"] = ""
-            frontmatter.tags = []
-            frontmatter[FM.D42_POSITION] = position
+        const result = await createDocPage(this.app, {
+            siteId: this.formState.siteId,
+            moduleName,
+            location,
+            title: this.formState.title,
+            description: this.formState.description,
         })
 
         switch (result._) {
-            case OK:
-                return file
-            case ERROR:
-                throw result.error
+            case OK: {
+                this.close()
+                const leaf = this.app.workspace.getLeaf(false)
+                await leaf.openFile(result.data)
+                break
+            }
+            case ERROR: {
+                log.error("Failed to create doc page", result.error)
+                Notice.error("Failed to create doc page", { permanent: true })
+                break
+            }
+            default:
+                result satisfies never
         }
     }
 
-    calculatePosition(parentFolder: Obsidian.TFolder, mode: InsertionMode): number | null {
-        const siblings = this.getSiblingPages(parentFolder)
-        const siblingPositions = this.getPositionsFromFrontmatter(siblings)
-
-        if (siblingPositions.length === 0) {
-            return Position.initial()
-        }
-
-        switch (mode.kind) {
-            case "root": {
-                // Prepend before first
-                const minPos = Math.min(...siblingPositions)
-                return Position.prepend(minPos)
-            }
-            case "child": {
-                // Append after last
-                const maxPos = Math.max(...siblingPositions)
-                return Position.append(maxPos)
-            }
-            case "prepend": {
-                // Find position of reference and insert before
-                const refPosition = this.getPositionOfFolder(mode.reference)
-                if (refPosition === null) {
-                    return null
-                }
-                const beforePositions = siblingPositions.filter(p => p < refPosition)
-                if (beforePositions.length === 0) {
-                    return Position.prepend(refPosition)
-                } else {
-                    const maxBefore = Math.max(...beforePositions)
-                    return Position.insert(maxBefore, refPosition)
-                }
-            }
-            case "append": {
-                // Find position of reference and insert after
-                const refPosition = this.getPositionOfFolder(mode.reference)
-                if (refPosition === null) {
-                    return null
-                }
-                const afterPositions = siblingPositions.filter(p => p > refPosition)
-                if (afterPositions.length === 0) {
-                    return Position.append(refPosition)
-                } else {
-                    const minAfter = Math.min(...afterPositions)
-                    return Position.insert(refPosition, minAfter)
-                }
-            }
-        }
-    }
-
-    async calculateFolderPrefix(parentFolder: Obsidian.TFolder, mode: InsertionMode): Promise<string> {
-        const siblings = this.getSiblingFolders(parentFolder)
-
-        if (siblings.length === 0) {
-            return "01"
-        }
-
-        // Extract numeric prefixes
-        const prefixes = siblings
-            .map(f => Doc.extractPositionFromFolderName(f.name))
-            .filter((p): p is number => p !== null)
-
-        if (prefixes.length === 0) {
-            return "01"
-        }
-
-        switch (mode.kind) {
-            case "root": {
-                // Prepend: shift all folders and use 01
-                await this.shiftFolderPrefixes(parentFolder, 1)
-                return "01"
-            }
-            case "child": {
-                // Append: max + 1
-                const maxPrefix = Math.max(...prefixes)
-                return this.formatPrefix(maxPrefix + 1)
-            }
-            case "prepend": {
-                // Insert before reference: need to shift others
-                const refPrefix = Doc.extractPositionFromFolderName(mode.reference.name) ?? 1
-                await this.shiftFolderPrefixes(parentFolder, refPrefix)
-                return this.formatPrefix(refPrefix)
-            }
-            case "append": {
-                // Insert after reference: need to shift others after
-                const refPrefix = Doc.extractPositionFromFolderName(mode.reference.name) ?? 1
-                await this.shiftFolderPrefixes(parentFolder, refPrefix + 1)
-                return this.formatPrefix(refPrefix + 1)
-            }
-        }
-    }
-
-    formatPrefix(num: number): string {
-        return num.toString().padStart(2, "0")
-    }
-
-    async shiftFolderPrefixes(parentFolder: Obsidian.TFolder, fromPrefix: number): Promise<void> {
-        const siblings = this.getSiblingFolders(parentFolder)
-
-        // Get folders with prefix >= fromPrefix, sorted descending
-        const toShift = siblings
-            .map(f => ({ folder: f, prefix: Doc.extractPositionFromFolderName(f.name) }))
-            .filter(
-                (x): x is { folder: Obsidian.TFolder; prefix: number } => x.prefix !== null && x.prefix >= fromPrefix,
-            )
-            .sort((a, b) => b.prefix - a.prefix)
-
-        // Rename in reverse order to avoid conflicts
-        for (const { folder, prefix } of toShift) {
-            const newPrefix = this.formatPrefix(prefix + 1)
-            const nameWithoutPrefix = Doc.extractTitleFromFolderName(folder.name) ?? folder.name
-            const newName = `${newPrefix} - ${nameWithoutPrefix}`
-            const newPath = Obsidian.normalizePath(`${parentFolder.path}/${newName}`)
-
-            await this.app.vault.rename(folder, newPath)
-        }
-    }
-
-    getSiblingFolders(parentFolder: Obsidian.TFolder): Obsidian.TFolder[] {
-        return parentFolder.children.filter((c): c is Obsidian.TFolder => c instanceof Obsidian.TFolder)
-    }
-
-    getSiblingPages(parentFolder: Obsidian.TFolder): Obsidian.TFile[] {
-        // Each page is in a folder with a markdown file
-        const result: Obsidian.TFile[] = []
-
-        for (const child of parentFolder.children) {
-            if (child instanceof Obsidian.TFolder) {
-                const mdFile = child.children.find(
-                    (c): c is Obsidian.TFile => c instanceof Obsidian.TFile && c.extension === "md",
-                )
-                if (mdFile) {
-                    result.push(mdFile)
-                }
-            }
-        }
-
-        return result
-    }
-
-    getPositionsFromFrontmatter(files: Obsidian.TFile[]): number[] {
-        const positions: number[] = []
-
-        for (const file of files) {
-            const pos = getPositionFromFile(this.app, file)
-            if (pos !== null) {
-                positions.push(pos)
-            } else {
-                Notice.warning(`Page missing position: ${file.path}`)
-            }
-        }
-
-        return positions
-    }
-
-    getPositionOfFolder(folder: Obsidian.TFolder): number | null {
-        return getPositionFromFolder(this.app, folder)
-    }
-
-    async ensureFolder(path: string): Promise<void> {
-        const exists = await this.app.vault.adapter.exists(path)
-        if (!exists) {
-            await this.app.vault.createFolder(path)
+    locationIdToLocation(id: LocationId.T): CreateDocPageLocation | null {
+        switch (id.kind) {
+            case "beginning":
+                return { kind: "beginning" }
+            case "before":
+                return { kind: "before", folderPath: id.folderPath }
+            case "after":
+                return { kind: "after", folderPath: id.folderPath }
+            case "first-child":
+                return { kind: "first-child", folderPath: id.folderPath }
+            case "header":
+                return null
         }
     }
 
@@ -657,6 +730,26 @@ export function registerCommand(plugin: Plugin): void {
             return true
         },
     })
+
+    // Headless API
+    plugin.headless.createDocPage = async input => {
+        const result = await createDocPage(plugin.app, {
+            siteId: input.siteId,
+            moduleName: input.moduleName,
+            location: input.location,
+            title: input.title,
+            description: input.description,
+        })
+        switch (result._) {
+            case OK:
+                return { path: result.data.path }
+            case ERROR:
+                throw new Error(result.error._)
+            default:
+                result satisfies never
+                throw new Error("unreachable")
+        }
+    }
 }
 
 // --- Context Menu

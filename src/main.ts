@@ -8,7 +8,9 @@ import { PendingSyncsManager } from "src/automations/pending-syncs-manager"
 import * as PublishEntryCmd from "src/commands/publish-entry"
 import { PublishingModal } from "src/commands/publish-entry"
 import * as CreateBlogPostCmd from "src/commands/create-blog-post"
+import type { CreateBlogPostInput } from "src/commands/create-blog-post"
 import * as CreateDocPageCmd from "src/commands/create-doc-page"
+import type { CreateDocPageInput } from "src/commands/create-doc-page"
 import * as MoveDocPageCmd from "src/commands/move-doc-page"
 import * as SetCoverImageCmd from "src/commands/set-cover-image"
 import * as InsertImageCmd from "src/commands/insert-image"
@@ -27,6 +29,11 @@ export default class Draft42 extends Obsidian.Plugin {
     fileTreeManager: FileTreeManager
     // @ts-expect-error
     pendingSyncsManager: PendingSyncsManager
+
+    headless: {
+        createBlogPost?: (input: CreateBlogPostInput) => Promise<{ path: string }>
+        createDocPage?: (input: CreateDocPageInput) => Promise<{ path: string }>
+    } = {}
 
     async onload() {
         await Config.Store.init(this)
