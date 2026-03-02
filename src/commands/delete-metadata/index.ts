@@ -14,7 +14,16 @@ export function registerCommand(plugin: Plugin): void {
     plugin.addCommand({
         ...Commands.DELETE_META_ENTRIES,
         checkCallback: (checking: boolean) => {
-            if (Config.Store.target() !== "local") return false
+            let target = Config.Store.target()
+            switch (target) {
+                case "local":
+                case "ci":
+                    break
+                case "production":
+                    return false
+                default:
+                    target satisfies never
+            }
             if (!Config.Store.debugging().exposeInternalMetadata) return false
 
             if (!checking) {

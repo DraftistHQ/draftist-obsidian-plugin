@@ -16,7 +16,7 @@ export type Build = {
     type: BuildType
 }
 
-export const Target = z.union([z.literal("local"), z.literal("production")])
+export const Target = z.union([z.literal("local"), z.literal("ci"), z.literal("production")])
 export type Target = z.infer<typeof Target>
 
 export const ApiUrl = z.string().brand<"ApiUrl">()

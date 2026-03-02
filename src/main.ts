@@ -19,6 +19,8 @@ import * as NormalizeImagesCmd from "src/commands/normalize-images"
 import * as NormalizeFrontmatterCmd from "src/commands/normalize-frontmatter"
 import * as DeleteMetadataCmd from "src/commands/delete-metadata"
 import * as CopyDebugInfoCmd from "src/commands/copy-debug-info"
+import * as OnboardCmd from "src/commands/onboard"
+import type { OnboardInput } from "src/commands/onboard"
 
 export default class Draft42 extends Obsidian.Plugin {
     // @ts-expect-error
@@ -31,6 +33,7 @@ export default class Draft42 extends Obsidian.Plugin {
     pendingSyncsManager: PendingSyncsManager
 
     headless: {
+        onboard?: (input: OnboardInput) => Promise<void>
         createBlogPost?: (input: CreateBlogPostInput) => Promise<{ path: string }>
         createDocPage?: (input: CreateDocPageInput) => Promise<{ path: string }>
     } = {}
@@ -73,6 +76,7 @@ export default class Draft42 extends Obsidian.Plugin {
         NormalizeFrontmatterCmd.registerCommand(this)
         CopyDebugInfoCmd.registerCommand(this)
         DeleteMetadataCmd.registerCommand(this)
+        OnboardCmd.registerCommand(this)
 
         this.addSettingTab(new SettingTab(this))
     }
