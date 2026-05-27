@@ -96,7 +96,7 @@ export class PendingSyncsManager {
     private async syncBlogPostStatus(file: Obsidian.TFile, siteId: Site.SiteId) {
         try {
             const frontmatter = Post.getFrontmatter(this.plugin.app, file)
-            const postId = frontmatter?.[FM.D42_CONTENT_ID]
+            const postId = frontmatter?.[FM.DFT_CONTENT_ID]
 
             if (!postId) {
                 log.error("Cannot sync blog post status: missing post ID in frontmatter", { file: file.path })
@@ -139,7 +139,7 @@ export class PendingSyncsManager {
     private async syncDocPageStatus(file: Obsidian.TFile, siteId: Site.SiteId) {
         try {
             const frontmatter = Doc.getFrontmatter(this.plugin.app, file)
-            const pageId = frontmatter?.[FM.D42_CONTENT_ID]
+            const pageId = frontmatter?.[FM.DFT_CONTENT_ID]
 
             if (!pageId) {
                 log.error("Cannot sync doc page status: missing page ID in frontmatter", { file: file.path })

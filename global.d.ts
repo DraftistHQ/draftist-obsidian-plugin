@@ -1,12 +1,12 @@
 export {}
 
 declare global {
-    var D42_VERSION: string
-    var D42_BUILD_ID: string
-    var D42_BUILD_TYPE: "debug" | "release"
-    var D42_CONFIG: string | null
+    var DFT_VERSION: string
+    var DFT_BUILD_ID: string
+    var DFT_BUILD_TYPE: "debug" | "release"
+    var DFT_CONFIG: string | null
 
     interface Window {
-        D42_DEBUG_EXTENSIVE_LOGGING: boolean | void
+        DFT_DEBUG_EXTENSIVE_LOGGING: boolean | void
     }
 }

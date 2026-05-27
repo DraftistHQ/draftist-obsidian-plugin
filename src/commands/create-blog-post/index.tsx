@@ -373,7 +373,7 @@ export function registerFileMenuEventHandler(plugin: Plugin): void {
 
             menu.addSeparator()
 
-            menu.addItem(item => item.setTitle(`Draft42: ${module.name}`).setIsLabel(true))
+            menu.addItem(item => item.setTitle(`Draftist: ${module.name}`).setIsLabel(true))
 
             menu.addItem(item =>
                 item

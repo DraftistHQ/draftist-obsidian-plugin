@@ -9,7 +9,7 @@ export type OnboardInput = {
     sitePath: string
 }
 
-const TOKEN_SECRET_NAME = "d42-token"
+const TOKEN_SECRET_NAME = "draftist-token"
 
 async function onboard(plugin: Plugin, input: OnboardInput): Promise<void> {
     // Store the token in SecretStorage

@@ -1,12 +1,12 @@
-# Contributing to Draft42 Obsidian Plugin
+# Contributing to Draftist Obsidian Plugin
 
 Thank you for your interest in contributing!
 
 ## Current State
 
-This plugin is developed as part of the Draft42 monorepo and requires a configured environment to test most functionality. We're working on making external contributions easier, but for now the development setup outside our monorepo isn't fully streamlined.
+This plugin is developed as part of the Draftist monorepo and requires a configured environment to test most functionality. We're working on making external contributions easier, but for now the development setup outside our monorepo isn't fully streamlined.
 
-If you'd like to contribute, please [open an issue](https://github.com/Draft42HQ/draft42-obsidian-plugin/issues) first to discuss your proposed changes. We'll work with you to figure out the best path forward.
+If you'd like to contribute, please [open an issue](https://github.com/DraftistHQ/draftist-obsidian-plugin/issues) first to discuss your proposed changes. We'll work with you to figure out the best path forward.
 
 ## Bug Reports and Feature Requests
 
@@ -50,5 +50,5 @@ fix(obsidian): resolve settings not persisting
 ## Questions?
 
 - Join our [Discord](https://discord.gg/nZhbzzbT5A)
-- Open an issue on [GitHub](https://github.com/Draft42HQ/draft42-obsidian-plugin/issues)
-- Email [support@draft42.io](mailto:support@draft42.io)
+- Open an issue on [GitHub](https://github.com/DraftistHQ/draftist-obsidian-plugin/issues)
+- Email [support@draftist.io](mailto:support@draftist.io)

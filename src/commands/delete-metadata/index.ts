@@ -44,20 +44,20 @@ function deleteMetadata(app: Obsidian.App): void {
 
     const modal = new Obsidian.Modal(app)
 
-    modal.titleEl.setText("Delete Draft42 metadata")
+    modal.titleEl.setText("Delete Draftist metadata")
 
     modal.contentEl.createEl("p", {
-        text: "It will delete all Draft42-related meta entries from frontmatter and image metadata files.",
+        text: "It will delete all Draftist-related meta entries from frontmatter and image metadata files.",
     })
     modal.contentEl.createEl("p", {
         text: "This action cannot be undone.",
     })
 
-    const buttonContainer = modal.contentEl.createDiv({ cls: "d42-alert-buttons" })
+    const buttonContainer = modal.contentEl.createDiv({ cls: "draftist-alert-buttons" })
 
     const cancelButton = buttonContainer.createEl("button", {
         text: "Cancel",
-        cls: "d42-button d42-button-secondary",
+        cls: "draftist-button draftist-button-secondary",
     })
     cancelButton.addEventListener("click", () => {
         modal.close()
@@ -65,7 +65,7 @@ function deleteMetadata(app: Obsidian.App): void {
 
     const confirmButton = buttonContainer.createEl("button", {
         text: "Delete",
-        cls: "d42-button d42-button-danger",
+        cls: "draftist-button draftist-button-danger",
     })
 
     confirmButton.addEventListener("click", async () => {
@@ -74,7 +74,7 @@ function deleteMetadata(app: Obsidian.App): void {
         // Delete frontmatter metadata
         const result = await Post.updateFrontmatter(app, file, meta => {
             Object.keys(meta).forEach(key => {
-                if (key.startsWith(FM.D42_PREFIX)) {
+                if (key.startsWith(FM.DFT_PREFIX)) {
                     delete (meta as Record<string, any>)[key]
                 }
             })

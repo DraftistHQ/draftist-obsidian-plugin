@@ -1,4 +1,4 @@
-.d42-onboarding-container {
+.draftist-onboarding-container {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -6,12 +6,12 @@
     width: 100%;
     height: 100%;
 
-    .d42-onboarding-heading {
+    .draftist-onboarding-heading {
         display: flex !important;
         font-size: 2rem !important;
     }
 
-    .d42-onboarding-subcontainer {
+    .draftist-onboarding-subcontainer {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -19,7 +19,7 @@
         width: 100%;
     }
 
-    .d42-onboarding-row {
+    .draftist-onboarding-row {
         display: flex;
         flex-direction: row;
         justify-content: center;
@@ -31,23 +31,23 @@
         }
     }
 
-    .d42-onboarding-message {
+    .draftist-onboarding-message {
         text-align: center;
         text-wrap: pretty;
     }
 
-    .d42-onboarding-error {
+    .draftist-onboarding-error {
         color: var(--text-error);
     }
 
-    .d42-onboarding-actions {
+    .draftist-onboarding-actions {
         display: flex;
         flex-direction: row;
         justify-content: center;
         gap: 1ch;
     }
 
-    .d42-onboarding-secret-input {
+    .draftist-onboarding-secret-input {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -59,14 +59,14 @@
         }
     }
 
-    .d42-onboarding-sites {
+    .draftist-onboarding-sites {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
         width: 90%;
     }
 
-    .d42-onboarding-site-container {
+    .draftist-onboarding-site-container {
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -78,20 +78,20 @@
         border-radius: 10px;
     }
 
-    .d42-onboarding-site-label {
+    .draftist-onboarding-site-label {
         display: flex;
         flex-direction: row;
         align-items: center;
         gap: 1ch;
     }
 
-    .d42-onboarding-site-input {
+    .draftist-onboarding-site-input {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
     }
 
-    .d42-onboarding-site-disabled {
+    .draftist-onboarding-site-disabled {
         color: var(--text-faint);
     }
 }

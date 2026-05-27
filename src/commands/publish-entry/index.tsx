@@ -416,7 +416,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
     })
 
     return (
-        <div className="d42-modal-container">
+        <div className="draftist-modal-container">
             {(() => {
                 switch (state.status) {
                     case "READY":
@@ -425,7 +425,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                     case "PREPARING":
                     case "PUBLISHING": {
                         return (
-                            <div className="d42-modal-processing-container">
+                            <div className="draftist-modal-processing-container">
                                 <div style={{ height: "32px" }} />
                                 <ProgressBar progress={progress} />
                             </div>
@@ -439,14 +439,14 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                             case "docs": {
                                 if (!state.published.hasContent) {
                                     return (
-                                        <div className="d42-alert-container d42-alert-container-info">
+                                        <div className="draftist-alert-container draftist-alert-container-info">
                                             <h1>Publishing Doc Page</h1>
-                                            <div className="d42-alert-message d42-alert-message-info">
+                                            <div className="draftist-alert-message draftist-alert-message-info">
                                                 Doc group updated successfully.
                                             </div>
-                                            <div className="d42-alert-buttons">
+                                            <div className="draftist-alert-buttons">
                                                 <button
-                                                    className="d42-button d42-button-secondary"
+                                                    className="draftist-button draftist-button-secondary"
                                                     onClick={_ => modal.close()}
                                                 >
                                                     Close
@@ -539,7 +539,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                         }
                                         case "MISSING_SITE": {
                                             messages.push(
-                                                "You don't have required site in your site list. Maybe you have created a new site on `draft42.io`, but didn't update the site list in the Obsidian plugin settings? Refresh your site list in the Settings and try again.",
+                                                "You don't have required site in your site list. Maybe you have created a new site on `draftist.io`, but didn't update the site list in the Obsidian plugin settings? Refresh your site list in the Settings and try again.",
                                             )
                                             break
                                         }
@@ -551,7 +551,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                                         }
                                         case "NO_SITE_MODULES": {
                                             messages.push(
-                                                "Your site doesn't have any modules. You need to add required modules in your site configuration on `draft42.io` and update your sites in the Obsidian plugin settings.",
+                                                "Your site doesn't have any modules. You need to add required modules in your site configuration on `draftist.io` and update your sites in the Obsidian plugin settings.",
                                             )
                                             break
                                         }
@@ -770,7 +770,7 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                             }
                             case "CLIENT_OUTDATED": {
                                 kind = "danger"
-                                messages.push("Please update Draft42 plugin to the latest version.")
+                                messages.push("Please update Draftist plugin to the latest version.")
                                 break
                             }
                             case "API_USER_ERROR": {
@@ -798,20 +798,23 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                         }
 
                         return (
-                            <div className={`d42-alert-container d42-alert-container-${kind}`}>
+                            <div className={`draftist-alert-container draftist-alert-container-${kind}`}>
                                 <h1>Publishing {contentLabel}</h1>
                                 {messages.map((message, idx) => (
-                                    <div key={idx} className={`d42-alert-message d42-alert-message-${kind}`}>
+                                    <div key={idx} className={`draftist-alert-message draftist-alert-message-${kind}`}>
                                         {message}
                                     </div>
                                 ))}
-                                <div className="d42-alert-buttons">
-                                    <button className="d42-button d42-button-secondary" onClick={_ => modal.close()}>
+                                <div className="draftist-alert-buttons">
+                                    <button
+                                        className="draftist-button draftist-button-secondary"
+                                        onClick={_ => modal.close()}
+                                    >
                                         Close
                                     </button>
                                     {retryWithoutCheck && (
                                         <button
-                                            className="d42-button d42-button-primary"
+                                            className="draftist-button draftist-button-primary"
                                             onClick={_ => {
                                                 guardRef.current = null
                                                 dispatch({
@@ -859,11 +862,14 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                         }
 
                         return (
-                            <div className={`d42-alert-container d42-alert-container-danger`}>
+                            <div className={`draftist-alert-container draftist-alert-container-danger`}>
                                 <h1>Publishing Error</h1>
-                                <div className={`d42-alert-message d42-alert-message-danger`}>{message}</div>
-                                <div className="d42-alert-buttons">
-                                    <button className="d42-button d42-button-secondary" onClick={_ => modal.close()}>
+                                <div className={`draftist-alert-message draftist-alert-message-danger`}>{message}</div>
+                                <div className="draftist-alert-buttons">
+                                    <button
+                                        className="draftist-button draftist-button-secondary"
+                                        onClick={_ => modal.close()}
+                                    >
                                         Close
                                     </button>
                                 </div>
@@ -887,13 +893,13 @@ function ProgressBar({ progress }: { progress: Progress | null }) {
     if (!progress) return null
 
     let label: string
-    let fillClass = "d42-progress-bar-fill"
+    let fillClass = "draftist-progress-bar-fill"
     let fillStyle: React.CSSProperties
 
     switch (progress.phase) {
         case "validating":
             label = "Validating..."
-            fillClass += " d42-progress-bar-fill-indeterminate"
+            fillClass += " draftist-progress-bar-fill-indeterminate"
             fillStyle = {}
             break
         case "uploading":
@@ -902,7 +908,7 @@ function ProgressBar({ progress }: { progress: Progress | null }) {
             break
         case "publishing":
             label = "Publishing..."
-            fillClass += " d42-progress-bar-fill-indeterminate"
+            fillClass += " draftist-progress-bar-fill-indeterminate"
             fillStyle = {}
             break
         default:
@@ -912,11 +918,11 @@ function ProgressBar({ progress }: { progress: Progress | null }) {
     }
 
     return (
-        <div className="d42-progress-bar">
-            <div className="d42-progress-bar-track">
+        <div className="draftist-progress-bar">
+            <div className="draftist-progress-bar-track">
                 <div className={fillClass} style={fillStyle} />
             </div>
-            <p className="d42-progress-bar-label">{label}</p>
+            <p className="draftist-progress-bar-label">{label}</p>
         </div>
     )
 }

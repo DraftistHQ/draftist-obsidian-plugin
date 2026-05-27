@@ -18,10 +18,10 @@ const config = {
     entryPoints: ["src/main.ts", "src/styles.css"],
     outdir: "./",
     define: {
-        D42_VERSION: JSON.stringify(process.env.D42_RELEASE_VERSION),
-        D42_BUILD_ID: JSON.stringify(process.env.D42_RELEASE_BUILD_ID),
-        D42_BUILD_TYPE: JSON.stringify(isRelease ? "release" : "debug"),
-        D42_CONFIG: JSON.stringify(process.env.D42_CONFIG || null),
+        DFT_VERSION: JSON.stringify(process.env.DFT_RELEASE_VERSION),
+        DFT_BUILD_ID: JSON.stringify(process.env.DFT_RELEASE_BUILD_ID),
+        DFT_BUILD_TYPE: JSON.stringify(isRelease ? "release" : "debug"),
+        DFT_CONFIG: JSON.stringify(process.env.DFT_CONFIG || null),
     },
     bundle: true,
     external: [

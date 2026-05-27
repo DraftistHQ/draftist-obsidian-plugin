@@ -1,4 +1,4 @@
-.d42-button {
+.draftist-button {
     align-self: flex-end;
     width: auto;
     border-width: 1px;
@@ -10,11 +10,11 @@
     transition: background-color 0.2s ease;
 }
 
-.d42-button-with-spinner {
+.draftist-button-with-spinner {
     padding-left: 0;
 }
 
-.d42-button-link {
+.draftist-button-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -30,22 +30,22 @@
     }
 }
 
-.d42-button-primary {
+.draftist-button-primary {
     border-color: var(--interactive-normal) !important;
     background-color: var(--interactive-accent) !important;
 }
 
-.d42-button-secondary {
+.draftist-button-secondary {
     border-color: var(--interactive-normal) !important;
     background-color: transparent !important;
 }
 
-.d42-button-secondary:focus {
+.draftist-button-secondary:focus {
     border-color: var(--interactive-normal) !important;
     background-color: var(--interactive-normal) !important;
 }
 
-.d42-button-danger {
+.draftist-button-danger {
     border-color: var(--interactive-normal) !important;
     background-color: var(--background-modifier-error) !important;
 }

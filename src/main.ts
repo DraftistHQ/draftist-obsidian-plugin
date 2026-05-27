@@ -22,7 +22,7 @@ import * as CopyDebugInfoCmd from "src/commands/copy-debug-info"
 import * as OnboardCmd from "src/commands/onboard"
 import type { OnboardInput } from "src/commands/onboard"
 
-export default class Draft42 extends Obsidian.Plugin {
+export default class Draftist extends Obsidian.Plugin {
     // @ts-expect-error
     styles: Styles
     // @ts-expect-error
@@ -98,13 +98,13 @@ export default class Draft42 extends Obsidian.Plugin {
 }
 
 class PublishingModals {
-    plugin: Draft42
+    plugin: Draftist
 
     // Obsidian maintains a single TFile intance for a given file,
     // so it's fine using it as a key here
     entries: Map<Obsidian.TFile, PublishingModal>
 
-    constructor(plugin: Draft42) {
+    constructor(plugin: Draftist) {
         this.plugin = plugin
         this.entries = new Map()
     }

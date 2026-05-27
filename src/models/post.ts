@@ -70,11 +70,11 @@ export const PublishableFrontmatter = z.object({
     "cover credit link": z.string().nullable().optional(),
     slug: PostSlug.nullable().optional(),
     tags: z.array(z.string()).nullable().optional(),
-    [FM.D42_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
-    [FM.D42_CONTENT_ID]: PostId.nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_SLUG]: Content.RenderedSlug.nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
+    [FM.DFT_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
+    [FM.DFT_CONTENT_ID]: PostId.nullable().optional(),
+    [FM.DFT_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
+    [FM.DFT_LAST_PUBLISHED_SLUG]: Content.RenderedSlug.nullable().optional(),
+    [FM.DFT_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
 })
 export type PublishableFrontmatter = z.infer<typeof PublishableFrontmatter>
 
@@ -87,11 +87,11 @@ export const OrderedFrontmatter: Array<keyof PublishableFrontmatter> = [
     "cover credit link",
     "slug",
     "tags",
-    FM.D42_CONTENT_KIND,
-    FM.D42_CONTENT_ID,
-    FM.D42_LAST_PUBLISHED_TITLE,
-    FM.D42_LAST_PUBLISHED_SLUG,
-    FM.D42_LAST_PUBLISHED_ON,
+    FM.DFT_CONTENT_KIND,
+    FM.DFT_CONTENT_ID,
+    FM.DFT_LAST_PUBLISHED_TITLE,
+    FM.DFT_LAST_PUBLISHED_SLUG,
+    FM.DFT_LAST_PUBLISHED_ON,
 ]
 
 export const Frontmatter = PublishableFrontmatter.partial()

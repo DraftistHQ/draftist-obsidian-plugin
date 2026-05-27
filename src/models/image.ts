@@ -10,7 +10,7 @@ import * as log from "src/logger"
 
 export const MAX_SIZE = 10 * 1024 * 1024 // 10Mb
 export const ALLOWED_FORMATS = ["jpg", "jpeg", "png", "webp", "gif"]
-export const METADATA_SUFFIX = "d42.json"
+export const METADATA_SUFFIX = "draftist.json"
 
 export const ImageId = Opaque.id<"ImageId">()
 export type ImageId = z.infer<typeof ImageId>

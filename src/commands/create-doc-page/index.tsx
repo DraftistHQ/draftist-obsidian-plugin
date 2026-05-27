@@ -82,7 +82,7 @@ export async function createDocPage(
         frontmatter.description = description || null
         frontmatter["posted on"] = ""
         frontmatter.tags = []
-        frontmatter[FM.D42_POSITION] = position
+        frontmatter[FM.DFT_POSITION] = position
     })
 
     switch (result._) {
@@ -771,7 +771,7 @@ export function registerFileMenuEventHandler(plugin: Plugin): void {
 
             menu.addSeparator()
 
-            menu.addItem(item => item.setTitle(`Draft42: ${module.name}`).setIsLabel(true))
+            menu.addItem(item => item.setTitle(`Draftist: ${module.name}`).setIsLabel(true))
 
             if (isModuleRoot) {
                 // Right-click on module root folder
@@ -837,7 +837,7 @@ export function registerFileMenuEventHandler(plugin: Plugin): void {
 
 function getPositionFromFile(app: Obsidian.App, file: Obsidian.TFile): number | null {
     const frontmatter = Doc.getFrontmatter(app, file)
-    const pos = frontmatter?.[FM.D42_POSITION]
+    const pos = frontmatter?.[FM.DFT_POSITION]
     return typeof pos === "number" ? pos : null
 }
 

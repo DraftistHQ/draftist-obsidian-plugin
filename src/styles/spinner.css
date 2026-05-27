@@ -1,12 +1,12 @@
-.d42-spinner {
+.draftist-spinner {
     width: 40px;
     height: 40px;
     display: inline-block;
     position: relative;
 }
 
-.d42-spinner::after,
-.d42-spinner::before {
+.draftist-spinner::after,
+.draftist-spinner::before {
     content: "";
     box-sizing: border-box;
     width: 40px;
@@ -17,13 +17,13 @@
     left: 0;
     top: 0;
     opacity: 0;
-    animation: d42-spin 2s linear infinite;
+    animation: draftist-spin 2s linear infinite;
 }
-.d42-spinner::after {
+.draftist-spinner::after {
     animation-delay: 1s;
 }
 
-@keyframes d42-spin {
+@keyframes draftist-spin {
     0% {
         transform: scale(0);
         opacity: 0;

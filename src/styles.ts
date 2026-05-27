@@ -34,7 +34,7 @@ export class Styles {
             }
         `
 
-        this.elements.BlockIdCss = this.injectStyle("d42-block-id", css)
+        this.elements.BlockIdCss = this.injectStyle("draftist-block-id", css)
     }
 
     disposeBlockIdCss() {
@@ -47,12 +47,12 @@ export class Styles {
         if (Config.Store.debugging().exposeInternalMetadata) return
 
         let css = `
-            [data-property-key^="${FM.D42_PREFIX}"] {
+            [data-property-key^="${FM.DFT_PREFIX}"] {
                 display: none !important;
             }
         `
 
-        this.elements.InternalFrontmatterCss = this.injectStyle("d42-frontmatter-internal", css)
+        this.elements.InternalFrontmatterCss = this.injectStyle("draftist-frontmatter-internal", css)
     }
 
     disposeInternalFrontmatterCss() {

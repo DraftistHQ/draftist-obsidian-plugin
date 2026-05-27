@@ -1,13 +1,13 @@
 {
-    "name": "draft42",
+    "name": "draftist",
     "version": "0.0.0",
-    "description": "Draft42 integration",
+    "description": "Draftist integration",
     "main": "main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs",
         "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
     },
-    "author": "Draft42",
+    "author": "Draftist",
     "license": "MIT",
     "dependencies": {
         "lodash": "4.17.21",

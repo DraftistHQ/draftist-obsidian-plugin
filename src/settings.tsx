@@ -73,13 +73,13 @@ export class SettingTab extends Obsidian.PluginSettingTab {
 
         containerEl.empty()
 
-        containerEl.createEl("h1", { text: "Draft42 Settings", cls: "d42-settings-heading" })
+        containerEl.createEl("h1", { text: "Draftist Settings", cls: "draftist-settings-heading" })
 
         new Obsidian.Setting(containerEl).setName("Authentication").setHeading()
 
         const tokenSetting = new Obsidian.Setting(containerEl)
             .setName("Token")
-            .setDesc("Select or create a secret for your Draft42 API token")
+            .setDesc("Select or create a secret for your Draftist API token")
 
         new Obsidian.SecretComponent(this.app, tokenSetting.controlEl)
             .setValue(Config.Store.tokenSecretName() || "")
@@ -90,7 +90,7 @@ export class SettingTab extends Obsidian.PluginSettingTab {
         tokenSetting.addExtraButton(button =>
             button
                 .setIcon("square-arrow-out-up-right")
-                .setTooltip("Get token on Draft42")
+                .setTooltip("Get token on Draftist")
                 .onClick(async () => {
                     window.open(Platform.apiTokensUrl())
                 }),
@@ -102,7 +102,7 @@ export class SettingTab extends Obsidian.PluginSettingTab {
             .addExtraButton(button =>
                 button
                     .setIcon("refresh-ccw")
-                    .setTooltip("Refetch sites from Draft42")
+                    .setTooltip("Refetch sites from Draftist")
                     .onClick(async () => {
                         // TODO: Show modal with site list (similar to the onboarding step)
                         if (Config.Store.apiToken()) {
@@ -154,7 +154,7 @@ export class SettingTab extends Obsidian.PluginSettingTab {
             .addExtraButton(button =>
                 button
                     .setIcon("square-arrow-out-up-right")
-                    .setTooltip("Manage sites on Draft42")
+                    .setTooltip("Manage sites on Draftist")
                     .onClick(async () => {
                         window.open(Platform.manageSitesUrl())
                     }),
@@ -226,12 +226,12 @@ export class SettingTab extends Obsidian.PluginSettingTab {
         if (disabledSites.length > 0) {
             const disabledSitesHeading = containerEl.createEl("div", {
                 text: "Unmanaged sites",
-                cls: `d42-settings-disabled-sites-header${this.showDisabledSites ? "" : " d42-settings-disabled-sites-header-folded"}`,
+                cls: `draftist-settings-disabled-sites-header${this.showDisabledSites ? "" : " draftist-settings-disabled-sites-header-folded"}`,
             })
             disabledSitesHeading.addEventListener("click", () => {
                 this.showDisabledSites = !this.showDisabledSites
                 disabledSitesHeading.classList.toggle(
-                    "d42-settings-disabled-sites-header-folded",
+                    "draftist-settings-disabled-sites-header-folded",
                     this.showDisabledSites,
                 )
                 this.display()
@@ -342,8 +342,8 @@ export class SettingTab extends Obsidian.PluginSettingTab {
             }),
         )
 
-        const footer = containerEl.createEl("div", { cls: "d42-settings-footer" })
-        footer.createEl("span", { text: `Version: ${D42_VERSION} (${D42_BUILD_ID})` })
+        const footer = containerEl.createEl("div", { cls: "draftist-settings-footer" })
+        footer.createEl("span", { text: `Version: ${DFT_VERSION} (${DFT_BUILD_ID})` })
         new Obsidian.ExtraButtonComponent(footer)
             .setIcon("copy")
             .setTooltip("Copy debug info")
@@ -363,7 +363,7 @@ export class SettingTab extends Obsidian.PluginSettingTab {
             const webviewer = this.app.internalPlugins?.plugins?.webviewer
             return webviewer?.enabled && webviewer?.instance?.options?.openExternalURLs
         } catch {
-            console.error("[Draft42] Failed to access webviewer options")
+            console.error("[Draftist] Failed to access webviewer options")
             return false
         }
     }
@@ -390,7 +390,7 @@ const Onboarding = ({
     let [step, setStep] = React.useState<OnboardingStep>(initialStep)
 
     return (
-        <div className="d42-onboarding-container">
+        <div className="draftist-onboarding-container">
             {(() => {
                 switch (step._) {
                     case "Start": {
@@ -421,18 +421,18 @@ const Onboarding = ({
 const Nbsp = () => "\u00A0"
 
 const OnboardingHeading = ({ children }: { children: React.ReactNode }) => {
-    return <h1 className="d42-onboarding-heading"> {children} </h1>
+    return <h1 className="draftist-onboarding-heading"> {children} </h1>
 }
 
 const OnboardingStart = ({ onNextStep }: { onNextStep: () => void }) => {
     return (
         <>
-            <OnboardingHeading> Welcome to Draft42! </OnboardingHeading>
-            <p className="d42-onboarding-row d42-onboarding-message">
-                Let's set up your plugin. You'll need a Draft42 account to continue.
+            <OnboardingHeading> Welcome to Draftist! </OnboardingHeading>
+            <p className="draftist-onboarding-row draftist-onboarding-message">
+                Let's set up your plugin. You'll need a Draftist account to continue.
             </p>
-            <div className="d42-onboarding-row d42-onboarding-actions">
-                <button type="button" className="d42-button d42-button-primary" onClick={onNextStep}>
+            <div className="draftist-onboarding-row draftist-onboarding-actions">
+                <button type="button" className="draftist-button draftist-button-primary" onClick={onNextStep}>
                     Get Started
                 </button>
             </div>
@@ -460,7 +460,7 @@ const SecretInput = ({
         }
     }, [app])
 
-    return <div ref={containerRef} className="d42-onboarding-secret-input" />
+    return <div ref={containerRef} className="draftist-onboarding-secret-input" />
 }
 
 const OnboardingApiToken = ({
@@ -539,16 +539,16 @@ const OnboardingApiToken = ({
     return (
         <>
             <OnboardingHeading> API Token </OnboardingHeading>
-            <div className="d42-onboarding-row">
-                <span className="d42-onboarding-message">
+            <div className="draftist-onboarding-row">
+                <span className="draftist-onboarding-message">
                     Click "Get token" to copy your API token, then create a secret using
                     <Nbsp />
                     "Link..." button.
                 </span>
             </div>
             {/* Don't bind submission handler here because SecretInput's link button would submit the form */}
-            <form className="d42-onboarding-subcontainer" onSubmit={event => event.preventDefault()}>
-                <div className="d42-onboarding-row">
+            <form className="draftist-onboarding-subcontainer" onSubmit={event => event.preventDefault()}>
+                <div className="draftist-onboarding-row">
                     <SecretInput
                         app={app}
                         value={secretName}
@@ -558,32 +558,44 @@ const OnboardingApiToken = ({
                         }}
                     />
                 </div>
-                {error && <div className="d42-onboarding-row d42-onboarding-error">{error}</div>}
-                <div className="d42-onboarding-row d42-onboarding-actions">
-                    <a href={Platform.apiTokensUrl()} className="d42-button d42-button-link d42-button-secondary">
+                {error && <div className="draftist-onboarding-row draftist-onboarding-error">{error}</div>}
+                <div className="draftist-onboarding-row draftist-onboarding-actions">
+                    <a
+                        href={Platform.apiTokensUrl()}
+                        className="draftist-button draftist-button-link draftist-button-secondary"
+                    >
                         Get token
                     </a>
                     <button
                         type="button"
                         disabled={isSubmitting}
-                        className={"d42-button d42-button-primary" + (isSubmitting ? " d42-button-with-spinner" : "")}
+                        className={
+                            "draftist-button draftist-button-primary" +
+                            (isSubmitting ? " draftist-button-with-spinner" : "")
+                        }
                         onClick={handleSubmit}
                     >
-                        {isSubmitting && <div className="d42-spinner" />}
+                        {isSubmitting && <div className="draftist-spinner" />}
                         Next
                     </button>
                 </div>
                 {webViewerEnabled && (
                     <>
-                        <div className={"d42-onboarding-row d42-alert-container d42-alert-container-info"}>
-                            <span className={"d42-alert-message d42-alert-message-info"}>
+                        <div
+                            className={"draftist-onboarding-row draftist-alert-container draftist-alert-container-info"}
+                        >
+                            <span className={"draftist-alert-message draftist-alert-message-info"}>
                                 When you click "Get token", Obsidian's web viewer will open with a login form. After
                                 logging in, you'll receive an email with a magic link. Paste that link into the web
                                 viewer's address bar, not your default browser.
                             </span>
                         </div>
-                        <div className={"d42-onboarding-row d42-alert-container d42-alert-container-warning"}>
-                            <span className={"d42-alert-message d42-alert-message-warning"}>
+                        <div
+                            className={
+                                "draftist-onboarding-row draftist-alert-container draftist-alert-container-warning"
+                            }
+                        >
+                            <span className={"draftist-alert-message draftist-alert-message-warning"}>
                                 Be aware that if you use other third-party Obsidian plugins, the Obsidian team{" "}
                                 <a href="https://help.obsidian.md/plugins/web-viewer#Security" target="_blank">
                                     recommends
@@ -672,8 +684,8 @@ const OnboardingSites = ({
         case "Loading":
             return (
                 <>
-                    <div className="d42-spinner" />
-                    <div className="d42-onboarding-row"> Loading sites... </div>
+                    <div className="draftist-spinner" />
+                    <div className="draftist-onboarding-row"> Loading sites... </div>
                 </>
             )
         case "Ready": {
@@ -682,9 +694,9 @@ const OnboardingSites = ({
         case "Failure":
             return (
                 <>
-                    <div className="d42-onboarding-row d42-onboarding-error"> {state.error} </div>
-                    <div className="d42-onboarding-row d42-onboarding-actions">
-                        <button className="d42-button d42-button-secondary" onClick={onRestart}>
+                    <div className="draftist-onboarding-row draftist-onboarding-error"> {state.error} </div>
+                    <div className="draftist-onboarding-row draftist-onboarding-actions">
+                        <button className="draftist-button draftist-button-secondary" onClick={onRestart}>
                             Restart
                         </button>
                     </div>
@@ -807,7 +819,7 @@ const OnboardingSitesList = ({
     return (
         <>
             <OnboardingHeading> Configure Sites </OnboardingHeading>
-            <p className="d42-onboarding-row d42-onboarding-message">
+            <p className="draftist-onboarding-row draftist-onboarding-message">
                 {isSingleSite ? (
                     <>Specify a folder path for your site's content. The folder will be created if it doesn't exist.</>
                 ) : (
@@ -817,27 +829,27 @@ const OnboardingSitesList = ({
                     </>
                 )}
             </p>
-            <form className="d42-onboarding-subcontainer" onSubmit={handleSubmit}>
-                <div className="d42-onboarding-sites">
+            <form className="draftist-onboarding-subcontainer" onSubmit={handleSubmit}>
+                <div className="draftist-onboarding-sites">
                     {sites.map(([siteId, site]) => (
-                        <div key={siteId} className="d42-onboarding-site-container">
+                        <div key={siteId} className="draftist-onboarding-site-container">
                             {isSingleSite ? (
-                                <span className={!site.enabled ? "d42-onboarding-site-disabled" : undefined}>
+                                <span className={!site.enabled ? "draftist-onboarding-site-disabled" : undefined}>
                                     {site.config.label || site.config.addresses.primary}
                                 </span>
                             ) : (
-                                <label className="d42-onboarding-site-label">
+                                <label className="draftist-onboarding-site-label">
                                     <input
                                         type="checkbox"
                                         checked={site.enabled}
                                         onChange={() => dispatch({ _: "TOGGLE_SITE", siteId })}
                                     />
-                                    <span className={!site.enabled ? "d42-onboarding-site-disabled" : undefined}>
+                                    <span className={!site.enabled ? "draftist-onboarding-site-disabled" : undefined}>
                                         {site.config.label || site.config.addresses.primary}
                                     </span>
                                 </label>
                             )}
-                            <div className="d42-onboarding-site-input">
+                            <div className="draftist-onboarding-site-input">
                                 <input
                                     type="text"
                                     size={30}
@@ -847,16 +859,16 @@ const OnboardingSitesList = ({
                                     onChange={event => dispatch({ _: "UPDATE_PATH", siteId, path: event.target.value })}
                                 />
                                 {state.errors[siteId] && (
-                                    <div className="d42-onboarding-error">{state.errors[siteId]} </div>
+                                    <div className="draftist-onboarding-error">{state.errors[siteId]} </div>
                                 )}
                             </div>
                         </div>
                     ))}
                 </div>
-                <div className="d42-onboarding-row d42-onboarding-actions">
+                <div className="draftist-onboarding-row draftist-onboarding-actions">
                     <button
                         type="submit"
-                        className="d42-button d42-button-primary"
+                        className="draftist-button draftist-button-primary"
                         disabled={!sites.some(([_, site]) => site.enabled)}
                     >
                         Finish

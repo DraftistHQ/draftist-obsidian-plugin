@@ -6,7 +6,7 @@ const styles = {
     error: "background: #d11a1a; color: #fff; font-weight: bold;",
 }
 
-const isExtensiveLogging = () => !!window.D42_DEBUG_EXTENSIVE_LOGGING
+const isExtensiveLogging = () => !!window.DFT_DEBUG_EXTENSIVE_LOGGING
 
 function createLogger(level: string, style: string) {
     return (...args: any[]) => {
@@ -14,7 +14,7 @@ function createLogger(level: string, style: string) {
 
         if (!shouldLog) return
 
-        console.log(`%c D42: ${level} `, style, ...args)
+        console.log(`%c DRAFTIST: ${level} `, style, ...args)
     }
 }
 

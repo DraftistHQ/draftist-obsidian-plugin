@@ -3,14 +3,14 @@ import * as Obsidian from "obsidian"
 import { Ok, Err, Result } from "src/utils/result"
 import * as log from "src/logger"
 
-export const D42_PREFIX = "[d42]"
+export const DFT_PREFIX = "[draftist]"
 
-export const D42_CONTENT_KIND = `${D42_PREFIX} content kind` as const
-export const D42_CONTENT_ID = `${D42_PREFIX} content id` as const
-export const D42_POSITION = `${D42_PREFIX} position` as const
-export const D42_LAST_PUBLISHED_TITLE = `${D42_PREFIX} published title` as const
-export const D42_LAST_PUBLISHED_SLUG = `${D42_PREFIX} published slug` as const
-export const D42_LAST_PUBLISHED_ON = `${D42_PREFIX} published on` as const
+export const DFT_CONTENT_KIND = `${DFT_PREFIX} content kind` as const
+export const DFT_CONTENT_ID = `${DFT_PREFIX} content id` as const
+export const DFT_POSITION = `${DFT_PREFIX} position` as const
+export const DFT_LAST_PUBLISHED_TITLE = `${DFT_PREFIX} published title` as const
+export const DFT_LAST_PUBLISHED_SLUG = `${DFT_PREFIX} published slug` as const
+export const DFT_LAST_PUBLISHED_ON = `${DFT_PREFIX} published on` as const
 
 export function ensureOrder(frontmatter: Record<string, any>, order: string[]): void {
     const ordered: Record<string, any> = {}

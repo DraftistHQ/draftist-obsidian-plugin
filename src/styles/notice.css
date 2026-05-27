@@ -1,26 +1,26 @@
-.d42-notice {
+.draftist-notice {
     display: flex;
     align-items: flex-start;
     gap: 0.5em;
 }
 
-.d42-notice-icon {
+.draftist-notice-icon {
     display: flex;
     flex-shrink: 0;
 }
 
-.d42-notice-content {
+.draftist-notice-content {
     flex: 1;
 }
 
-.d42-notice-info .d42-notice-icon {
+.draftist-notice-info .draftist-notice-icon {
     color: var(--text-accent);
 }
 
-.d42-notice-warning .d42-notice-icon {
+.draftist-notice-warning .draftist-notice-icon {
     color: var(--text-warning);
 }
 
-.d42-notice-error .d42-notice-icon {
+.draftist-notice-error .draftist-notice-icon {
     color: var(--text-error);
 }

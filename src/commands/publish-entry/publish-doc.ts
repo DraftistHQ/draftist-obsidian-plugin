@@ -174,11 +174,11 @@ export async function prepareForPublishing(
     let title = file.basename
     let description = frontmatter.description || null
     let slug = frontmatter.slug || null
-    let d42PageId = frontmatter[FM.D42_CONTENT_ID]
+    let dftPageId = frontmatter[FM.DFT_CONTENT_ID]
 
     let status = frontmatter.status || null
     let postedOn = frontmatter["posted on"] || null
-    let position = frontmatter[FM.D42_POSITION]
+    let position = frontmatter[FM.DFT_POSITION]
 
     if (position === undefined || position === null) {
         // Backfill position from folder prefix
@@ -206,10 +206,10 @@ export async function prepareForPublishing(
 
     let pageKind: PublishDocRequest.PublishableDocPageKind
 
-    if (!d42PageId) {
+    if (!dftPageId) {
         pageKind = "NewPage"
     } else {
-        pageKind = { TAG: "ExistingPage", id: d42PageId }
+        pageKind = { TAG: "ExistingPage", id: dftPageId }
     }
 
     let page = {
@@ -232,12 +232,12 @@ export async function publish(
     switch (result._) {
         case OK: {
             // TODO: Handle error
-            Doc.updateFrontmatter(app, file, meta => {
-                meta[FM.D42_CONTENT_ID] = result.data.id
-                meta[FM.D42_CONTENT_KIND] = Content.DocPageContentKind.value
-                meta[FM.D42_LAST_PUBLISHED_TITLE] = page.pageData.title
-                meta[FM.D42_LAST_PUBLISHED_SLUG] = result.data.slug
-                meta[FM.D42_LAST_PUBLISHED_ON] = file.stat.mtime
+            await Doc.updateFrontmatter(app, file, meta => {
+                meta[FM.DFT_CONTENT_ID] = result.data.id
+                meta[FM.DFT_CONTENT_KIND] = Content.DocPageContentKind.value
+                meta[FM.DFT_LAST_PUBLISHED_TITLE] = page.pageData.title
+                meta[FM.DFT_LAST_PUBLISHED_SLUG] = result.data.slug
+                meta[FM.DFT_LAST_PUBLISHED_ON] = file.stat.mtime
             })
             break
         }
@@ -273,7 +273,7 @@ async function backfillPosition(file: Obsidian.TFile, app: Obsidian.App): Promis
             if (!mdFile) return null
 
             const fm = Doc.getFrontmatter(app, mdFile)
-            const position = fm?.[FM.D42_POSITION]
+            const position = fm?.[FM.DFT_POSITION]
 
             return { folder, prefix, mdFile, position: typeof position === "number" ? position : null }
         })
@@ -316,7 +316,7 @@ async function backfillPosition(file: Obsidian.TFile, app: Obsidian.App): Promis
 
     // Write to frontmatter
     await Doc.updateFrontmatter(app, file, fm => {
-        fm[FM.D42_POSITION] = position
+        fm[FM.DFT_POSITION] = position
     })
 
     return position

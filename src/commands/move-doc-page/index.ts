@@ -178,7 +178,7 @@ async function movePage(app: Obsidian.App, targetFolder: Obsidian.TFolder, direc
 
     // Update frontmatter position
     const result = await Doc.updateFrontmatter(app, target.mdFile, frontmatter => {
-        frontmatter[FM.D42_POSITION] = newPosition
+        frontmatter[FM.DFT_POSITION] = newPosition
     })
     if (result._ === ERROR) {
         log.error("Failed to update position", result.error)
@@ -214,6 +214,6 @@ async function movePage(app: Obsidian.App, targetFolder: Obsidian.TFolder, direc
 
 function getPositionFromFile(app: Obsidian.App, file: Obsidian.TFile): number | null {
     const frontmatter = Doc.getFrontmatter(app, file)
-    const pos = frontmatter?.[FM.D42_POSITION]
+    const pos = frontmatter?.[FM.DFT_POSITION]
     return typeof pos === "number" ? pos : null
 }

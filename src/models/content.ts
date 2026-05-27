@@ -121,6 +121,7 @@ export function resolveInternalLinks(
         log.trace("Parsed link", { linkTarget, blockId })
 
         const linkedFile =
+            app.metadataCache.getFirstLinkpathDest(linkTarget, file.path) ||
             app.vault.getAbstractFileByPath(linkTarget) ||
             app.vault.getAllLoadedFiles().find(file => file.name === linkTarget)
 
@@ -154,8 +155,8 @@ export function resolveInternalLinks(
 
             if (!linkedMetadata) return Err({ _: "LINKED_RESOURCE_DOESNT_HAVE_METADATA", link })
 
-            const contentId = linkedMetadata[FM.D42_CONTENT_ID]
-            const contentType = ContentKind.safeParse(linkedMetadata[FM.D42_CONTENT_KIND])
+            const contentId = linkedMetadata[FM.DFT_CONTENT_ID]
+            const contentType = ContentKind.safeParse(linkedMetadata[FM.DFT_CONTENT_KIND])
 
             if (!contentId || !contentType.success) {
                 return Err({ _: "LINKED_RESOURCE_IS_NOT_PUBLISHED", link })
@@ -386,23 +387,23 @@ export async function extractContentBody(
 }
 
 export type PublishTrackingFrontmatter = {
-    [FM.D42_LAST_PUBLISHED_ON]?: number | null
-    [FM.D42_LAST_PUBLISHED_TITLE]?: string | null
+    [FM.DFT_LAST_PUBLISHED_ON]?: number | null
+    [FM.DFT_LAST_PUBLISHED_TITLE]?: string | null
 }
 
 // Check if file has changed since last publish.
 // Returns true if file should be published (has changes or never published).
 export function isFileChanged(file: Obsidian.TFile, frontmatter: PublishTrackingFrontmatter): boolean {
     // TODO: We should probably move this check to the server since user might preview a draft without publishing it
-    let d42LastPublishedOn = frontmatter[FM.D42_LAST_PUBLISHED_ON]
-    let d42LastPublishedTitle = frontmatter[FM.D42_LAST_PUBLISHED_TITLE]
+    let dftLastPublishedOn = frontmatter[FM.DFT_LAST_PUBLISHED_ON]
+    let dftLastPublishedTitle = frontmatter[FM.DFT_LAST_PUBLISHED_TITLE]
 
-    if (!d42LastPublishedOn || !d42LastPublishedTitle) return true // never published
+    if (!dftLastPublishedOn || !dftLastPublishedTitle) return true // never published
 
     const currentTitle = file.basename
     const tolerance = 1000 // 1 second tolerance
-    const isModified = Math.abs(file.stat.mtime - d42LastPublishedOn) > tolerance
-    const isTitleChanged = d42LastPublishedTitle !== currentTitle
+    const isModified = Math.abs(file.stat.mtime - dftLastPublishedOn) > tolerance
+    const isTitleChanged = dftLastPublishedTitle !== currentTitle
 
     // TODO: Check if assets have been modified
 

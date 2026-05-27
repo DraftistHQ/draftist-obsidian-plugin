@@ -3,7 +3,7 @@
 
 export function createErrorEl(container: HTMLElement): HTMLElement {
     return container.createEl("div", {
-        cls: "d42-field-error",
+        cls: "draftist-field-error",
         attr: {
             style: "display: none; color: var(--text-error); font-size: var(--font-ui-smaller); padding-top: var(--size-4-1);",
         },

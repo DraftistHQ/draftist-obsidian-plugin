@@ -8,8 +8,8 @@ import { Result, Ok, Err } from "src/utils/result"
 export const Service = z.string().brand<"Service">()
 export type Service = z.infer<typeof Service>
 
-export type BuildId = typeof D42_BUILD_ID
-export type BuildType = typeof D42_BUILD_TYPE
+export type BuildId = typeof DFT_BUILD_ID
+export type BuildType = typeof DFT_BUILD_TYPE
 
 export type Build = {
     id: BuildId
@@ -140,7 +140,7 @@ export class Store {
     }
 
     static async init(plugin: Obsidian.Plugin) {
-        let build = { id: D42_BUILD_ID, type: D42_BUILD_TYPE }
+        let build = { id: DFT_BUILD_ID, type: DFT_BUILD_TYPE }
         let config = await Store.loadConfig(plugin)
         let userSettings = await Store.loadUserSettings(plugin)
         Store.self = new Store(build, config, userSettings)
@@ -156,8 +156,8 @@ export class Store {
 
     private static async loadConfig(plugin: Obsidian.Plugin): Promise<Config> {
         // Release builds have config bundled at build time as JSON
-        if (D42_BUILD_TYPE === "release" && D42_CONFIG) {
-            return Config.parse(JSON.parse(D42_CONFIG))
+        if (DFT_BUILD_TYPE === "release" && DFT_CONFIG) {
+            return Config.parse(JSON.parse(DFT_CONFIG))
         }
         // Debug builds load from config.json file
         return await this.loadConfigFromFile(plugin)
@@ -183,7 +183,7 @@ export class Store {
         }
 
         let settings: Settings = _.merge({}, DEFAULT_SETTINGS, data)
-        window.D42_DEBUG_EXTENSIVE_LOGGING = !!settings.debugging.extensiveLogging
+        window.DFT_DEBUG_EXTENSIVE_LOGGING = !!settings.debugging.extensiveLogging
         return settings
     }
 
@@ -299,7 +299,7 @@ export class Store {
     static async setDebuggingExtensiveLogging(value: boolean) {
         await Store.updateUserSettings(settings => {
             settings.debugging.extensiveLogging = value
-            window.D42_DEBUG_EXTENSIVE_LOGGING = value
+            window.DFT_DEBUG_EXTENSIVE_LOGGING = value
         })
     }
 

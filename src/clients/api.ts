@@ -67,7 +67,7 @@ async function fetch<I, O, E>(
     const apiToken = token || Config.Store.apiToken()
 
     const authHeader = { Authorization: `Bearer ${apiToken}` }
-    const clientHeader = { "D42-Client": `${service}/${D42_VERSION};build=${D42_BUILD_ID}` }
+    const clientHeader = { "DFT-Client": `${service}/${DFT_VERSION};build=${DFT_BUILD_ID}` }
 
     const options: Obsidian.RequestUrlParam = {
         url: `${apiUrl}/v1/providers/obsidian${path}`,

@@ -21,12 +21,12 @@ export const PublishableFrontmatter = z.object({
     slug: DocPageSlug.nullable().optional(),
     tags: z.array(z.string()).nullable().optional(),
     collapsed: z.boolean().nullable().optional(),
-    [FM.D42_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
-    [FM.D42_CONTENT_ID]: DocPageId.nullable().optional(),
-    [FM.D42_POSITION]: z.number().nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_SLUG]: Content.RenderedSlug.nullable().optional(),
-    [FM.D42_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
+    [FM.DFT_CONTENT_KIND]: Content.ContentKind.nullable().optional(),
+    [FM.DFT_CONTENT_ID]: DocPageId.nullable().optional(),
+    [FM.DFT_POSITION]: z.number().nullable().optional(),
+    [FM.DFT_LAST_PUBLISHED_TITLE]: z.string().nullable().optional(),
+    [FM.DFT_LAST_PUBLISHED_SLUG]: Content.RenderedSlug.nullable().optional(),
+    [FM.DFT_LAST_PUBLISHED_ON]: z.number().nullable().optional(),
 })
 export type PublishableFrontmatter = z.infer<typeof PublishableFrontmatter>
 
@@ -37,12 +37,12 @@ export const OrderedFrontmatter: Array<keyof PublishableFrontmatter> = [
     "slug",
     "tags",
     "collapsed",
-    FM.D42_CONTENT_KIND,
-    FM.D42_CONTENT_ID,
-    FM.D42_POSITION,
-    FM.D42_LAST_PUBLISHED_TITLE,
-    FM.D42_LAST_PUBLISHED_SLUG,
-    FM.D42_LAST_PUBLISHED_ON,
+    FM.DFT_CONTENT_KIND,
+    FM.DFT_CONTENT_ID,
+    FM.DFT_POSITION,
+    FM.DFT_LAST_PUBLISHED_TITLE,
+    FM.DFT_LAST_PUBLISHED_SLUG,
+    FM.DFT_LAST_PUBLISHED_ON,
 ]
 
 export const Frontmatter = PublishableFrontmatter.partial()
@@ -192,7 +192,7 @@ export function resolveParentId(
     }
 
     const parentFrontmatter = app.metadataCache.getFileCache(parentNote)?.frontmatter
-    const parentContentId = parentFrontmatter?.[FM.D42_CONTENT_ID] as DocPageId | undefined
+    const parentContentId = parentFrontmatter?.[FM.DFT_CONTENT_ID] as DocPageId | undefined
 
     if (!parentContentId) {
         return Err({ _: "PARENT_NOT_PUBLISHED", folderPath: hierarchy.parentPath })

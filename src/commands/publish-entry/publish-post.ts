@@ -169,7 +169,7 @@ export async function prepareForPublishing(
     let description = frontmatter["description"] || null
     let slug = frontmatter["slug"] || null
     let postedOn = frontmatter["posted on"] || null
-    let d42PostId = frontmatter[FM.D42_CONTENT_ID]
+    let dftPostId = frontmatter[FM.DFT_CONTENT_ID]
 
     let cover: Post.Cover | null = null
 
@@ -217,10 +217,10 @@ export async function prepareForPublishing(
 
     let postKind: PublishPostRequest.PublishablePostKind
 
-    if (!d42PostId) {
+    if (!dftPostId) {
         postKind = "NewPost"
     } else {
-        postKind = { TAG: "ExistingPost", id: d42PostId }
+        postKind = { TAG: "ExistingPost", id: dftPostId }
     }
 
     let post = {
@@ -243,12 +243,12 @@ export async function publish(
     switch (result._) {
         case OK: {
             // TODO: Handle error
-            Post.updateFrontmatter(app, file, meta => {
-                meta[FM.D42_CONTENT_ID] = result.data.id
-                meta[FM.D42_CONTENT_KIND] = Content.BlogPostContentKind.value
-                meta[FM.D42_LAST_PUBLISHED_TITLE] = post.postData.title
-                meta[FM.D42_LAST_PUBLISHED_SLUG] = result.data.slug
-                meta[FM.D42_LAST_PUBLISHED_ON] = file.stat.mtime
+            await Post.updateFrontmatter(app, file, meta => {
+                meta[FM.DFT_CONTENT_ID] = result.data.id
+                meta[FM.DFT_CONTENT_KIND] = Content.BlogPostContentKind.value
+                meta[FM.DFT_LAST_PUBLISHED_TITLE] = post.postData.title
+                meta[FM.DFT_LAST_PUBLISHED_SLUG] = result.data.slug
+                meta[FM.DFT_LAST_PUBLISHED_ON] = file.stat.mtime
             })
             break
         }

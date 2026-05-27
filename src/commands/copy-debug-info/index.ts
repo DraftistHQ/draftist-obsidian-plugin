@@ -25,7 +25,7 @@ export async function runCommand(): Promise<void> {
 
 function getInfo(): string {
     const os = getOS()
-    const lines = [`OS: ${os}`, `Obsidian: ${Obsidian.apiVersion}`, `Draft42: ${D42_VERSION} (${D42_BUILD_ID})`]
+    const lines = [`OS: ${os}`, `Obsidian: ${Obsidian.apiVersion}`, `Draftist: ${DFT_VERSION} (${DFT_BUILD_ID})`]
     return lines.join("\n")
 }
 

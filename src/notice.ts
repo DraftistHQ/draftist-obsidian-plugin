@@ -39,13 +39,13 @@ const show = (level: "info" | "warning" | "error", message: NoticeMessage, opts?
     const duration = !!opts?.permanent ? 0 : undefined
 
     const fragment = document.createDocumentFragment()
-    const container = fragment.createEl("div", { cls: `d42-notice d42-notice-${level}` })
-    Obsidian.setIcon(container.createEl("span", { cls: "d42-notice-icon" }), icon)
-    const content = container.createEl("span", { cls: "d42-notice-content" })
+    const container = fragment.createEl("div", { cls: `draftist-notice draftist-notice-${level}` })
+    Obsidian.setIcon(container.createEl("span", { cls: "draftist-notice-icon" }), icon)
+    const content = container.createEl("span", { cls: "draftist-notice-content" })
     if (typeof message === "string") {
-        content.setText(`Draft42: ${message}`)
+        content.setText(`Draftist: ${message}`)
     } else {
-        message.prepend("Draft42: ")
+        message.prepend("Draftist: ")
         content.appendChild(message)
     }
 
