@@ -1,4 +1,4 @@
-// CORE: core/lib/services/server/routes/providers/obsidian/settings/get_user_sites.rs
+// CORE: core/lib/services/server/routes/integrations/obsidian/settings/get_user_sites.rs
 
 import { z } from "zod"
 

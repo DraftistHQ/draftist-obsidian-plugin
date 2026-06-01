@@ -1,4 +1,4 @@
-// CORE: core/lib/services/server/routes/providers/obsidian/blog/sync_blog_post.rs
+// CORE: core/lib/services/server/routes/integrations/obsidian/blog/sync_blog_post.rs
 
 import { z } from "zod"
 

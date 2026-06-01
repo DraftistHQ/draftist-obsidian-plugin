@@ -70,7 +70,7 @@ async function fetch<I, O, E>(
     const clientHeader = { "DFT-Client": `${service}/${DFT_VERSION};build=${DFT_BUILD_ID}` }
 
     const options: Obsidian.RequestUrlParam = {
-        url: `${apiUrl}/v1/providers/obsidian${path}`,
+        url: `${apiUrl}/v1/integrations/obsidian${path}`,
         method,
         headers: { ...headers, ...authHeader, ...clientHeader },
         throw: false,

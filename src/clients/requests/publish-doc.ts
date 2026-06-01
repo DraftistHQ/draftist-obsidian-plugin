@@ -1,4 +1,4 @@
-// CORE: core/lib/services/server/routes/providers/obsidian/docs/publish_doc_page_draft.rs (TODO: implement)
+// CORE: core/lib/services/server/routes/integrations/obsidian/docs/publish_doc_page_draft.rs (TODO: implement)
 
 import { z } from "zod"
 
