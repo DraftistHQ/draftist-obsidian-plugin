@@ -42,7 +42,7 @@ export type PostPrepublishedStatus = z.infer<typeof PostPrepublishedStatus>
 export const PostStatus = z.union([PostStatusIdea, Content.ContentStatus])
 export type PostStatus = z.infer<typeof PostStatus>
 
-export function getStatusFolderName(status: "Idea" | "Draft" | "Published" | "Archived"): string {
+export function getStatusFolderName(status: PostStatus): string {
     switch (status) {
         case "Idea":
             return "Ideas"
@@ -50,8 +50,12 @@ export function getStatusFolderName(status: "Idea" | "Draft" | "Published" | "Ar
             return "Drafts"
         case "Published":
             return "Published"
+        case "Unpublished":
+            return "Unpublished"
         case "Archived":
             return "Archive"
+        case "Deleted":
+            return "Trash"
         default:
             status satisfies never
             return status

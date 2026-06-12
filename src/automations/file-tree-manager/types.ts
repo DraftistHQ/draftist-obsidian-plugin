@@ -7,6 +7,7 @@ export type BlogPostState = {
     status: string | null
     postedOn: string | null
     title: string
+    hasContentId: boolean
 }
 
 export type BlogPostChangeData = {

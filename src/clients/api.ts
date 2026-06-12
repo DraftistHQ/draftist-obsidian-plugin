@@ -85,7 +85,7 @@ async function fetch<I, O, E>(
     try {
         const response: Obsidian.RequestUrlResponse = await Obsidian.requestUrl(options)
 
-        log.debug("Received response", { status: response.status, json: response.json, headers: response.headers })
+        log.debug("Received response", { status: response.status, text: response.text, headers: response.headers })
 
         if (response.status < 200 || (response.status >= 300 && response.status < 400)) {
             return Err({ _: "API_UNEXPECTED_ERROR", error: new Error(`Unexpected HTTP status: ${response.status}`) })

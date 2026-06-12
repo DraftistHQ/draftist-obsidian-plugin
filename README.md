@@ -6,14 +6,15 @@ Publish your personal content websites directly from [Obsidian](https://obsidian
 
 ## Features
 
-- **Preview & publish** — See your post on your site before going live
+- **Preview & publish** — See your content on your site before going live
+- **Lifecycle management** — Publish, unpublish, archive, restore, and delete content from Draftist
 - **Custom domains** — Your own domain with automatic SSL and redirects
 - **Theming** — Fonts, colors, light/dark mode, upload custom fonts
 - **SEO-ready** — Server-rendered content, meta/og tags, clean URLs
 - **Image optimization** — CDN delivery and state-of-the-art placeholders
 - **Deep linking** — Block IDs for linking to any content block
 - _[coming soon]_ Multi-site support
-- _[coming soon]_ Documentation sites
+- **Documentation sites** — Hierarchical docs pages with parent/child navigation _(private beta)_
 - _[coming soon]_ More modules: photo galleries, etc.
 
 [See a live demo →](https://demo.draftist.io/)
@@ -60,7 +61,9 @@ All commands are available via the command palette (`Ctrl/Cmd + P`). Feel free t
 
 | Command | Description |
 |---------|-------------|
-| `Draftist: Preview and publish` | Opens your post in the browser to preview how it will look on your site. You can preview as many times as you want while working — publish only when ready. |
+| `Draftist: Preview and publish` | Uploads assets, saves the current note as a Draftist draft, and opens a browser preview. Use the toolbar on the preview page to publish when ready. |
+| `Draftist: Manage on Draftist` | Opens the current post or page on Draftist so you can publish, unpublish, archive, restore, or delete it. |
+| `Draftist: Pull metadata from Draftist` | Refreshes the current note's Draftist status and publication metadata from Draftist. |
 
 ### Creating Content
 
@@ -88,7 +91,7 @@ These commands create local notes in designated folders for organization. They d
 
 ## Content Organization
 
-When the "Manage file trees" automation is enabled, the plugin automatically organizes your posts based on their `status` frontmatter field:
+When the "Manage site folders" automation is enabled, the plugin automatically organizes your posts based on their `status` frontmatter field. Before a post goes live, you can use `Idea` and `Draft` to organize your writing workflow. After a post goes live, manage its public status on Draftist; the plugin pulls that status back to Obsidian.
 
 ```
 Site/
@@ -99,18 +102,27 @@ Site/
     │   └── Work in Progress/
     ├── Published/
     │   └── 2024-01-15 - My Published Post/
-    └── Archive/
-        └── 2023-06-01 - Old Post/
+    ├── Unpublished/
+    │   └── 2024-01-15 - Needs More Work/
+    ├── Archive/
+    │   └── 2023-06-01 - Old Post/
+    ├── Trash/
+    │   └── 2024-01-15 - Deleted Post/
+    └── Deleted/
+        └── 2024-01-15 - Removed Post/
 ```
 
 - **Ideas** → early stage notes
 - **Drafts** → posts you're actively working on
 - **Published** → posts live on your site
-- **Archive** → posts removed from public view
+- **Unpublished** → posts taken offline because they still need work
+- **Archive** → posts taken offline because they are no longer relevant
+- **Trash** → posts scheduled for deletion on Draftist
+- **Deleted** → notes whose content was permanently deleted from Draftist
 
 `Blog` in the example above is the module name — it must match the module name configured in your Draftist site settings.
 
-When you change a post's `status` in the frontmatter, the plugin automatically moves it to the corresponding folder. Any post with a `posted on` date gets a date prefix (e.g., `2024-01-15 - Post Title`).
+Before a post has ever gone live, changing its `status` between `Idea` and `Draft` moves it to the corresponding folder. Once a post has gone live, use Draftist to manage its status. The plugin pulls `Published`, `Unpublished`, `Archived`, and `Deleted` metadata back to the frontmatter and moves the post to the matching folder. If Draftist reports that the post no longer exists, the plugin removes local Draftist metadata and image metadata sidecars, keeps `status: Deleted`, and moves the post to `Deleted/`. Any post with a `posted on` date gets a date prefix (e.g., `2024-01-15 - Post Title`).
 
 ### Posts and Assets
 

@@ -14,6 +14,7 @@ import * as Timer from "src/utils/timer"
 import * as log from "src/logger"
 import * as Notice from "src/notice"
 import { Commands } from "src/commands"
+import { openUrlInBrowser } from "src/utils/open-url"
 
 import * as PostPublishing from "./publish-post"
 import * as DocPublishing from "./publish-doc"
@@ -170,21 +171,6 @@ function reducer(state: State, action: Action): State {
 }
 
 const initialState: State = { status: "READY" }
-
-// --- Helpers
-
-function openPreviewOrShowNoticeWithLink(url: string, text: string) {
-    if (Obsidian.Platform.isMobile) {
-        Notice.info(
-            createFragment(fragment => {
-                fragment.createEl("a", { href: url, text })
-            }),
-            { permanent: true },
-        )
-    } else {
-        window.open(url)
-    }
-}
 
 // --- Modal
 
@@ -386,16 +372,16 @@ const PublishingModalComponent = ({ app, plugin, file, modal }: Props) => {
                 switch (state.published.kind) {
                     case "blog": {
                         let url = `https://${state.site.config.addresses.draft}/${state.module.slug}/${state.published.post.slug}`
-                        openPreviewOrShowNoticeWithLink(url, "Preview and publish blog post ↗")
-                        plugin.pendingSyncsManager.registerPendingSync(file)
+                        openUrlInBrowser(url, "Preview and publish blog post ↗")
+                        plugin.metadataSyncManager.registerPendingSync(file)
                         modal.close()
                         break
                     }
                     case "docs": {
                         if (state.published.hasContent) {
                             let url = `https://${state.site.config.addresses.draft}/${state.module.slug}/${state.published.page.slug}`
-                            openPreviewOrShowNoticeWithLink(url, "Preview and publish doc page ↗")
-                            plugin.pendingSyncsManager.registerPendingSync(file)
+                            openUrlInBrowser(url, "Preview and publish doc page ↗")
+                            plugin.metadataSyncManager.registerPendingSync(file)
                             modal.close()
                         }
                         break

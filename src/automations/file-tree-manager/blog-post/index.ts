@@ -4,6 +4,7 @@ import * as Config from "src/config"
 import * as Content from "src/models/content"
 import * as Post from "src/models/post"
 import * as Site from "src/models/site"
+import * as FM from "src/models/fm"
 import * as Notice from "src/notice"
 import * as log from "src/logger"
 
@@ -24,6 +25,7 @@ export function detectBlogPostChange(
         status: frontmatter?.status || null,
         postedOn: frontmatter?.["posted on"] || null,
         title: file.basename,
+        hasContentId: !!frontmatter?.[FM.DFT_CONTENT_ID],
     }
 
     // Calculate expected folder path based on current state
@@ -86,7 +88,10 @@ function buildFolderPath(state: BlogPostState, site: Config.SiteSettings, module
     const statusResult = Post.PostStatus.safeParse(state.status)
     if (!statusResult.success) return null
 
-    const statusFolder = Post.getStatusFolderName(statusResult.data)
+    const statusFolder =
+        statusResult.data === "Deleted" && !state.hasContentId
+            ? "Deleted"
+            : Post.getStatusFolderName(statusResult.data)
 
     // Determine post folder name (with or without date prefix)
     let postFolderName: string

@@ -8,6 +8,14 @@ export const Commands: Record<string, Command> = {
         id: "publish-entry",
         name: "Preview and publish",
     },
+    MANAGE_ENTRY: {
+        id: "manage-entry",
+        name: "Manage on Draftist",
+    },
+    PULL_METADATA: {
+        id: "pull-metadata",
+        name: "Pull metadata from Draftist",
+    },
     DELETE_META_ENTRIES: {
         id: "delete-meta-entries",
         name: "Delete meta entries",

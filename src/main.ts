@@ -4,7 +4,7 @@ import * as Config from "src/config"
 import { SettingTab } from "src/settings"
 import { Styles } from "src/styles"
 import { FileTreeManager } from "src/automations/file-tree-manager"
-import { PendingSyncsManager } from "src/automations/pending-syncs-manager"
+import { MetadataSyncManager } from "src/automations/metadata-sync-manager"
 import * as PublishEntryCmd from "src/commands/publish-entry"
 import { PublishingModal } from "src/commands/publish-entry"
 import * as CreateBlogPostCmd from "src/commands/create-blog-post"
@@ -19,6 +19,8 @@ import * as NormalizeImagesCmd from "src/commands/normalize-images"
 import * as NormalizeFrontmatterCmd from "src/commands/normalize-frontmatter"
 import * as DeleteMetadataCmd from "src/commands/delete-metadata"
 import * as CopyDebugInfoCmd from "src/commands/copy-debug-info"
+import * as ManageEntryCmd from "src/commands/manage-entry"
+import * as PullMetadataCmd from "src/commands/pull-metadata"
 import * as OnboardCmd from "src/commands/onboard"
 import type { OnboardInput } from "src/commands/onboard"
 
@@ -30,7 +32,7 @@ export default class Draftist extends Obsidian.Plugin {
     // @ts-expect-error
     fileTreeManager: FileTreeManager
     // @ts-expect-error
-    pendingSyncsManager: PendingSyncsManager
+    metadataSyncManager: MetadataSyncManager
 
     headless: {
         onboard?: (input: OnboardInput) => Promise<void>
@@ -44,7 +46,7 @@ export default class Draftist extends Obsidian.Plugin {
         this.styles = new Styles()
         this.publishingModals = new PublishingModals(this)
         this.fileTreeManager = new FileTreeManager(this)
-        this.pendingSyncsManager = new PendingSyncsManager(this)
+        this.metadataSyncManager = new MetadataSyncManager(this)
 
         // Handle styling
         let file = this.app.workspace.getActiveFile()
@@ -59,10 +61,14 @@ export default class Draftist extends Obsidian.Plugin {
         // Register file tree manager if enabled
         this.fileTreeManager.register()
 
+        // Register metadata sync manager
+        this.metadataSyncManager.register()
+
         // Register file menu handlers
         CreateBlogPostCmd.registerFileMenuEventHandler(this)
         CreateDocPageCmd.registerFileMenuEventHandler(this)
         MoveDocPageCmd.registerFileMenuEventHandler(this)
+        ManageEntryCmd.registerFileMenuEventHandler(this)
 
         // Register commands
         PublishEntryCmd.registerCommand(this)
@@ -75,6 +81,8 @@ export default class Draftist extends Obsidian.Plugin {
         SetCoverImageCmd.registerCommand(this)
         NormalizeFrontmatterCmd.registerCommand(this)
         CopyDebugInfoCmd.registerCommand(this)
+        ManageEntryCmd.registerCommand(this)
+        PullMetadataCmd.registerCommand(this)
         DeleteMetadataCmd.registerCommand(this)
         OnboardCmd.registerCommand(this)
 
@@ -85,7 +93,7 @@ export default class Draftist extends Obsidian.Plugin {
         this.publishingModals.disposeAll()
         this.styles.disposeAll()
         this.fileTreeManager.dispose()
-        this.pendingSyncsManager.dispose()
+        this.metadataSyncManager.dispose()
         Config.Store.dispose()
     }
 

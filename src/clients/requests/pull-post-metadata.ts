@@ -1,4 +1,4 @@
-// CORE: core/lib/services/server/routes/integrations/obsidian/blog/sync_blog_post.rs
+// CORE: core/lib/services/server/routes/integrations/obsidian/blog/get_blog_post_metadata.rs
 
 import { z } from "zod"
 
@@ -12,11 +12,14 @@ const Response = z.object({
 })
 export type Response = z.infer<typeof Response>
 
+const Error = z.literal("NotFound")
+export type Error = z.infer<typeof Error>
+
 const parsers = {
     success: Response,
-    failure: null,
+    failure: Error,
 }
 
 export function send(siteId: Site.SiteId, postId: Post.PostId) {
-    return Api.get(`/sites/${siteId}/blog/post/${postId}/sync`, { parsers })
+    return Api.get(`/sites/${siteId}/blog/post/${postId}/metadata`, { parsers })
 }

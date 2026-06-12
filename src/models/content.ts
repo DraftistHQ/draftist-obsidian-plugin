@@ -32,9 +32,17 @@ export type ContentKind = z.infer<typeof ContentKind>
 
 export const ContentStatusDraft = z.literal("Draft")
 export const ContentStatusPublished = z.literal("Published")
+export const ContentStatusUnpublished = z.literal("Unpublished")
 export const ContentStatusArchived = z.literal("Archived")
+export const ContentStatusDeleted = z.literal("Deleted")
 
-export const ContentStatus = z.union([ContentStatusDraft, ContentStatusPublished, ContentStatusArchived])
+export const ContentStatus = z.union([
+    ContentStatusDraft,
+    ContentStatusPublished,
+    ContentStatusUnpublished,
+    ContentStatusArchived,
+    ContentStatusDeleted,
+])
 export type ContentStatus = z.infer<typeof ContentStatus>
 
 // --- Posted On
